@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgriGuard — Field Health Monitor</title>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2E7D42">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AgriGuard">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link rel="icon" href="/static/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F8F2; --surface: #FFFFFF; --surface-2: #EEF2E7;
+    --ink: #1E2B1A; --ink-soft: #5A6B54; --ink-faint: #8B9A85; --line: #E1E7D9;
+    --good: #2E7D42; --good-soft: #E3F1E5;
+    --warn: #C77C1F; --warn-soft: #FBF0DF;
+    --urgent: #C0392B; --urgent-soft: #FBE5E1;
+    --water: #1F6FB2; --water-soft: #E3F0FA;
+    --shadow: 0 1px 2px rgba(30,43,26,.05), 0 6px 18px -10px rgba(30,43,26,.16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12180F; --surface: #1A2216; --surface-2: #212B1B;
+      --ink: #ECF2E6; --ink-soft: #AAB8A2; --ink-faint: #76846F; --line: #2B3624;
+      --good: #6FCB86; --good-soft: #1D3324;
+      --warn: #E3A24E; --warn-soft: #3A2C15;
+      --urgent: #F0796A; --urgent-soft: #3B1E1A;
+      --water: #6FB3E8; --water-soft: #16293A;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px -10px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body.lang-en .lang-ta { display: none; }
+  body.lang-ta .lang-en { display: none; }
+  .lang-ta, .lang-ta * { font-family: "Noto Sans Tamil", "Source Sans 3", sans-serif !important; }
+
+  .page { max-width: 920px; margin: 0 auto; padding: 20px 18px 60px; display: flex; flex-direction: column; gap: 18px; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 4px 2px; }
+  .brand-name { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; }
+  .brand-sub { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .topbar-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .live-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-faint); font-weight: 600; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+  .lang-toggle {
+    font-family: "Manrope", "Noto Sans Tamil", sans-serif; font-weight: 700; font-size: 12.5px;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 100px;
+    padding: 6px 14px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .lang-toggle:hover { background: var(--surface-2); }
+
+  .hero {
+    display: flex; align-items: center; gap: 16px;
+    border-radius: 16px; padding: 22px 24px; box-shadow: var(--shadow);
+  }
+  .hero-good { background: var(--good-soft); }
+  .hero-attention { background: var(--warn-soft); }
+  .hero-urgent { background: var(--urgent-soft); }
+  .hero-icon {
+    flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Manrope", sans-serif; font-weight: 800; font-size: 20px; color: white;
+  }
+  .hero-good .hero-icon { background: var(--good); }
+  .hero-attention .hero-icon { background: var(--warn); }
+  .hero-urgent .hero-icon { background: var(--urgent); }
+  .hero-title { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 19px; line-height: 1.25; }
+  .hero-good .hero-title { color: var(--good); }
+  .hero-attention .hero-title { color: var(--warn); }
+  .hero-urgent .hero-title { color: var(--urgent); }
+  .hero-sub { font-size: 13.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.4; }
+
+  .mission-bar {
+    display: flex; flex-wrap: wrap; gap: 10px; background: var(--surface);
+    border-radius: 14px; padding: 14px 18px; box-shadow: var(--shadow);
+  }
+  .mission-chip { display: flex; align-items: center; gap: 8px; flex: 1 1 150px; min-width: 0; }
+  .mission-chip-icon {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    background: var(--surface-2);
+  }
+  .mission-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .mission-dot.online { background: var(--good); animation: pulse 2s ease-in-out infinite; }
+  .mission-dot.offline { background: var(--ink-faint); }
+  .mission-chip-label { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .04em; }
+  .mission-chip-value { font-family: "Manrope", "Noto Sans Tamil", sans-serif; font-weight: 700; font-size: 13.5px; line-height: 1.25; }
+  .battery-good { color: var(--good); }
+  .battery-warn { color: var(--warn); }
+  .battery-low { color: var(--urgent); }
+
+  .voice-bar { display: flex; align-items: center; gap: 12px; }
+  .voice-btn {
+    display: inline-flex; align-items: center; gap: 8px; font-family: "Manrope", "Noto Sans Tamil", sans-serif;
+    font-weight: 700; font-size: 13.5px; color: var(--surface); background: var(--water);
+    border: none; border-radius: 100px; padding: 10px 18px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .voice-btn:hover { opacity: .9; }
+  .voice-btn.playing { background: var(--urgent); }
+  .voice-icon { font-size: 15px; }
+  .voice-status { font-size: 12px; color: var(--ink-faint); }
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 720px) { .grid { grid-template-columns: 1.3fr 1fr; align-items: start; } }
+
+  .panel { background: var(--surface); border-radius: 14px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .panel-title { font-family: "Manrope", sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 14px; }
+
+  .action-list { display: flex; flex-direction: column; gap: 12px; }
+  .action-item { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; }
+  .action-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .action-position { font-family: "Manrope", sans-serif; font-weight: 700; font-size: 13.5px; color: var(--ink-soft); }
+  .action-label { font-family: "Manrope", sans-serif; font-weight: 700; font-size: 15.5px; margin-top: 5px; }
+  .action-label.bad { color: var(--urgent); }
+  .action-label.ok { color: var(--good); }
+  .action-meta { font-size: 12px; color: var(--ink-faint); margin-top: 4px; }
+  .treatment-tip {
+    margin-top: 9px; font-size: 13px; color: var(--ink); background: var(--warn-soft);
+    border-radius: 8px; padding: 8px 11px; line-height: 1.4;
+  }
+  .treatment-tip strong { color: var(--warn); }
+
+  .trend-badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+  .trend-worsening { background: var(--urgent-soft); color: var(--urgent); }
+  .trend-improving { background: var(--good-soft); color: var(--good); }
+  .trend-steady { background: var(--surface); color: var(--ink-faint); }
+  .trend-new { background: var(--water-soft); color: var(--water); }
+
+  .flight-action {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 9px;
+    font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
+  }
+  .flight-action .flight-icon { font-size: 12px; }
+  .flight-extra_orbit { background: var(--urgent-soft); color: var(--urgent); }
+  .flight-requeue { background: var(--warn-soft); color: var(--warn); }
+  .flight-quick_pass { background: var(--good-soft); color: var(--good); }
+
+  .empty-good { font-size: 13.5px; color: var(--ink-soft); padding: 8px 0; }
+
+  .irrigation-status { display: flex; gap: 16px; align-items: center; }
+  .moisture-gauge { flex-shrink: 0; width: 30px; height: 100px; background: var(--surface-2); border-radius: 8px; overflow: hidden; display: flex; align-items: flex-end; }
+  .moisture-fill { width: 100%; transition: height .4s ease; }
+  .pump-state { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 17px; }
+  .pump-on { color: var(--water); }
+  .pump-off { color: var(--ink-faint); }
+  .moisture-value { font-size: 13.5px; color: var(--ink-soft); margin-top: 3px; }
+
+  .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .mini-stat { text-align: center; }
+  .mini-num { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 20px; }
+  .mini-label { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+
+  details.activity-log { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+  details.activity-log summary {
+    cursor: pointer; padding: 16px 22px; font-family: "Manrope", sans-serif; font-weight: 700; font-size: 14px;
+    list-style: none; display: flex; align-items: center; justify-content: space-between; color: var(--ink-soft);
+  }
+  details.activity-log summary::-webkit-details-marker { display: none; }
+  .summary-arrow { font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+  .log-body { padding: 0 22px 20px; }
+  .log-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); font-weight: 700; margin: 16px 0 8px; }
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+  table { width: 100%; min-width: 480px; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 12px; font-size: 12.5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--surface-2); color: var(--ink-soft); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+  .healthy-text { color: var(--good); font-weight: 600; }
+  .diseased-text { color: var(--urgent); font-weight: 600; }
+
+  footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 6px 2px 0; }
+  .report-link {
+    display: inline-flex; align-items: center; gap: 6px; font-family: "Manrope", sans-serif; font-weight: 700; font-size: 13px;
+    color: var(--surface); background: var(--good); padding: 9px 16px; border-radius: 8px; text-decoration: none;
+  }
+  .footer-note { font-size: 11.5px; color: var(--ink-faint); }
+</style>
+</head>
+<body class="lang-en">
+
+<div class="page">
+
+  <div class="topbar">
+    <div>
+      <div class="brand-name">AgriGuard</div>
+      <div class="brand-sub">
+        <span class="lang-en">Live Field Health Monitor</span>
+        <span class="lang-ta">நேரடி வயல் ஆரோக்கிய கண்காணிப்பு</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a href="/mission-plan" class="lang-toggle" style="text-decoration:none; display:inline-flex; align-items:center;">
+          <span class="lang-en">Flight Plan</span><span class="lang-ta">பறப்புத் திட்டம்</span>
+        </a>
+        <button class="lang-toggle" id="langToggle" type="button">தமிழ்</button>
+      </div>
+      <div class="live-indicator">
+        <span class="dot"></span>
+        <span class="lang-en">Live — updates every 5s</span>
+        <span class="lang-ta">நேரடி — 5 வினாடிக்கு ஒருமுறை புதுப்பிப்பு</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="hero hero-{{ field_status }}">
+    {% if field_status == 'good' %}
+      <div class="hero-icon">&#10003;</div>
+      <div class="hero-text">
+        <div class="hero-title">
+          <span class="lang-en">Your field looks healthy</span>
+          <span class="lang-ta">உங்கள் வயல் ஆரோக்கியமாக உள்ளது</span>
+        </div>
+        <div class="hero-sub">
+          <span class="lang-en">No repeat issues found across {{ total_detections }} inspection{{ 's' if total_detections != 1 else '' }} so far today.</span>
+          <span class="lang-ta">இன்று {{ total_detections }} ஆய்வுகளில் மீண்டும் மீண்டும் வரும் பிரச்சனைகள் இல்லை.</span>
+        </div>
+      </div>
+    {% elif field_status == 'attention' %}
+      <div class="hero-icon">!</div>
+      <div class="hero-text">
+        <div class="hero-title">
+          <span class="lang-en">{{ repeat_offenders|length if repeat_offenders else 1 }} tree{{ 's' if (repeat_offenders|length if repeat_offenders else 1) != 1 else '' }} need attention</span>
+          <span class="lang-ta">{{ repeat_offenders|length if repeat_offenders else 1 }} மரங்களுக்கு கவனம் தேவை</span>
+        </div>
+        <div class="hero-sub">
+          <span class="lang-en">Review the action list below and apply the recommended treatment.</span>
+          <span class="lang-ta">கீழே உள்ள பட்டியலை பார்த்து பரிந்துரைக்கப்பட்ட சிகிச்சையை பயன்படுத்தவும்.</span>
+        </div>
+      </div>
+    {% else %}
+      <div class="hero-icon">&#8252;</div>
+      <div class="hero-text">
+        <div class="hero-title">
+          <span class="lang-en">Urgent — a tree is getting worse</span>
+          <span class="lang-ta">அவசரம் — ஒரு மரம் மோசமடைந்து வருகிறது</span>
+        </div>
+        <div class="hero-sub">
+          <span class="lang-en">Disease severity is increasing across repeat visits. Treat as soon as possible.</span>
+          <span class="lang-ta">நோயின் தீவிரம் அதிகரித்து வருகிறது. விரைவில் சிகிச்சை செய்யவும்.</span>
+        </div>
+      </div>
+    {% endif %}
+  </section>
+
+  <div class="mission-bar">
+    <div class="mission-chip">
+      <div class="mission-chip-icon"><span class="mission-dot {{ 'online' if mission.drone_connected else 'offline' }}"></span></div>
+      <div>
+        <div class="mission-chip-label"><span class="lang-en">Drone</span><span class="lang-ta">ட்ரோன்</span></div>
+        <div class="mission-chip-value">
+          <span class="lang-en">{{ 'Connected' if mission.drone_connected else 'Offline' }}</span>
+          <span class="lang-ta">{{ 'இணைக்கப்பட்டது' if mission.drone_connected else 'இணைப்பு துண்டிக்கப்பட்டது' }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="mission-chip">
+      <div class="mission-chip-icon">&#128225;</div>
+      <div>
+        <div class="mission-chip-label"><span class="lang-en">Mission</span><span class="lang-ta">பணி</span></div>
+        <div class="mission-chip-value">
+          <span class="lang-en">{{ mission.phase_label }}</span>
+          <span class="lang-ta">{{ mission.phase_label_ta }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="mission-chip">
+      <div class="mission-chip-icon">&#128267;</div>
+      <div>
+        <div class="mission-chip-label">
+          <span class="lang-en">Battery (simulated)</span><span class="lang-ta">பேட்டரி (சிமுலேஷன்)</span>
+        </div>
+        <div class="mission-chip-value {{ 'battery-good' if mission.battery_percent > 50 else ('battery-warn' if mission.battery_percent > 20 else 'battery-low') }}">
+          {{ mission.battery_percent }}%
+        </div>
+      </div>
+    </div>
+    <div class="mission-chip">
+      <div class="mission-chip-icon">&#127795;</div>
+      <div>
+        <div class="mission-chip-label"><span class="lang-en">Trees Scanned</span><span class="lang-ta">ஆய்வு செய்யப்பட்ட மரங்கள்</span></div>
+        <div class="mission-chip-value">{{ mission.trees_scanned }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="voice-bar">
+    <button class="voice-btn" id="voiceBtn" type="button">
+      <span class="voice-icon" id="voiceIcon">&#9654;</span>
+      <span class="lang-en">Listen to Report</span>
+      <span class="lang-ta">அறிக்கையைக் கேளுங்கள்</span>
+    </button>
+    <span class="voice-status" id="voiceStatus"></span>
+    <audio id="voiceAudio"></audio>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">
+        <span class="lang-en">Action Needed</span>
+        <span class="lang-ta">செயல் தேவை</span>
+      </div>
+      {% if repeat_offenders %}
+        <div class="action-list">
+        {% for o in repeat_offenders %}
+          <div class="action-item">
+            <div class="action-top">
+              <div class="action-position">{{ o.position }}</div>
+              <span class="trend-badge trend-{{ o.trend }}">
+                <span class="lang-en">{{ o.trend }}</span>
+                <span class="lang-ta">{{ {'worsening':'மோசமடைகிறது','improving':'மேம்படுகிறது','steady':'நிலையானது','new':'புதியது'}[o.trend] }}</span>
+              </span>
+            </div>
+            <div class="action-label {{ 'ok' if o.latest_is_healthy else 'bad' }}">
+              <span class="lang-en">{{ o.latest_label_display }}</span>
+              <span class="lang-ta">{{ o.latest_label_display_ta }}</span>
+            </div>
+            <div class="action-meta">
+              <span class="lang-en">Flagged {{ o.diseased_count }} of {{ o.total_visits }} visits — last seen {{ o.latest_timestamp }}</span>
+              <span class="lang-ta">{{ o.total_visits }} இல் {{ o.diseased_count }} முறை — கடைசியாக {{ o.latest_timestamp }}</span>
+            </div>
+            {% if o.latest_treatment %}
+            <div class="treatment-tip">
+              <span class="lang-en"><strong>Do this:</strong> {{ o.latest_treatment }}</span>
+              <span class="lang-ta"><strong>இதை செய்யவும்:</strong> {{ o.latest_treatment_ta }}</span>
+            </div>
+            {% endif %}
+            <div class="flight-action flight-{{ o.recommended_action }}">
+              <span class="flight-icon">&#8635;</span>
+              <span class="lang-en">Next pass: {{ o.recommended_action_label }}</span>
+              <span class="lang-ta">அடுத்த பறப்பு: {{ o.recommended_action_label_ta }}</span>
+            </div>
+          </div>
+        {% endfor %}
+        </div>
+      {% elif latest_detection and not latest_detection.is_healthy %}
+        <div class="action-list">
+          <div class="action-item">
+            <div class="action-top"><div class="action-position">{{ latest_detection.position }}</div></div>
+            <div class="action-label bad">
+              <span class="lang-en">{{ latest_detection.label_display }}</span>
+              <span class="lang-ta">{{ latest_detection.label_display_ta }}</span>
+            </div>
+            <div class="action-meta">
+              <span class="lang-en">Detected {{ latest_detection.timestamp }}</span>
+              <span class="lang-ta">கண்டறியப்பட்டது {{ latest_detection.timestamp }}</span>
+            </div>
+            <div class="treatment-tip">
+              <span class="lang-en"><strong>Do this:</strong> {{ latest_detection.treatment }}</span>
+              <span class="lang-ta"><strong>இதை செய்யவும்:</strong> {{ latest_detection.treatment_ta }}</span>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-good">
+          <span class="lang-en">Nothing needs action right now.</span>
+          <span class="lang-ta">இப்போது எதுவும் செயல்பட தேவையில்லை.</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span class="lang-en">Soil &amp; Irrigation</span>
+        <span class="lang-ta">மண் &amp; நீர்ப்பாசனம்</span>
+      </div>
+      {% if latest_irrigation %}
+        <div class="irrigation-status">
+          <div class="moisture-gauge">
+            <div class="moisture-fill" style="height: {{ latest_irrigation.moisture }}%; background: {{ 'var(--water)' if latest_irrigation.pump_status == 'ON' else 'var(--good)' }};"></div>
+          </div>
+          <div>
+            <div class="pump-state {{ 'pump-on' if latest_irrigation.pump_status == 'ON' else 'pump-off' }}">
+              <span class="lang-en">Pump {{ 'Running' if latest_irrigation.pump_status == 'ON' else 'Off' }}</span>
+              <span class="lang-ta">பம்ப் {{ 'இயங்குகிறது' if latest_irrigation.pump_status == 'ON' else 'நிறுத்தப்பட்டது' }}</span>
+            </div>
+            <div class="moisture-value">
+              <span class="lang-en">{{ latest_irrigation.moisture }}% soil moisture</span>
+              <span class="lang-ta">{{ latest_irrigation.moisture }}% மண் ஈரப்பதம்</span>
+            </div>
+            <div class="action-meta">
+              <span class="lang-en">Last checked {{ latest_irrigation.timestamp }}</span>
+              <span class="lang-ta">கடைசியாக சரிபார்க்கப்பட்டது {{ latest_irrigation.timestamp }}</span>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-good">
+          <span class="lang-en">No irrigation data yet</span>
+          <span class="lang-ta">இன்னும் நீர்ப்பாசன தரவு இல்லை</span>
+        </div>
+      {% endif %}
+
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-num">{{ total_detections }}</div>
+          <div class="mini-label"><span class="lang-en">Inspections</span><span class="lang-ta">ஆய்வுகள்</span></div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-num">{{ diseased_count }}</div>
+          <div class="mini-label"><span class="lang-en">Diseased</span><span class="lang-ta">நோய்வாய்ப்பட்டவை</span></div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-num">{{ total_irrigation }}</div>
+          <div class="mini-label"><span class="lang-en">Waterings</span><span class="lang-ta">நீர்ப்பாய்ச்சல்</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <details class="activity-log">
+    <summary>
+      <span><span class="lang-en">Full Activity Log</span><span class="lang-ta">முழு செயல்பாட்டு பதிவு</span></span>
+      <span class="summary-arrow lang-en">Show ▾</span>
+      <span class="summary-arrow lang-ta">காட்டு ▾</span>
+    </summary>
+    <div class="log-body">
+      <div class="log-section-title">
+        <span class="lang-en">Recent Inspections</span>
+        <span class="lang-ta">சமீபத்திய ஆய்வுகள்</span>
+      </div>
+      {% if detections %}
+      <div class="table-wrap">
+      <table>
+        <tr>
+          <th><span class="lang-en">Time</span><span class="lang-ta">நேரம்</span></th>
+          <th><span class="lang-en">Result</span><span class="lang-ta">முடிவு</span></th>
+          <th><span class="lang-en">Confidence</span><span class="lang-ta">நம்பகத்தன்மை</span></th>
+          <th><span class="lang-en">Position</span><span class="lang-ta">இடம்</span></th>
+        </tr>
+        {% for d in detections %}
+        <tr>
+          <td>{{ d.timestamp }}</td>
+          <td class="{{ 'healthy-text' if d.is_healthy else 'diseased-text' }}">
+            <span class="lang-en">{{ d.label_display }}</span>
+            <span class="lang-ta">{{ d.label_display_ta }}</span>
+          </td>
+          <td>{{ "%.0f"|format(d.confidence * 100) }}%</td>
+          <td>{{ d.position }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-good">
+        <span class="lang-en">No inspections logged yet</span>
+        <span class="lang-ta">இன்னும் ஆய்வுகள் பதிவு செய்யப்படவில்லை</span>
+      </div>
+      {% endif %}
+
+      <div class="log-section-title">
+        <span class="lang-en">Recent Irrigation</span>
+        <span class="lang-ta">சமீபத்திய நீர்ப்பாசனம்</span>
+      </div>
+      {% if irrigation_events %}
+      <div class="table-wrap">
+      <table>
+        <tr>
+          <th><span class="lang-en">Time</span><span class="lang-ta">நேரம்</span></th>
+          <th><span class="lang-en">Moisture</span><span class="lang-ta">ஈரப்பதம்</span></th>
+          <th><span class="lang-en">Pump</span><span class="lang-ta">பம்ப்</span></th>
+        </tr>
+        {% for e in irrigation_events %}
+        <tr>
+          <td>{{ e.timestamp }}</td>
+          <td>{{ e.moisture }}%</td>
+          <td class="{{ 'pump-on' if e.pump_status == 'ON' else 'pump-off' }}">
+            <span class="lang-en">{{ e.pump_status }}</span>
+            <span class="lang-ta">{{ 'ஆன்' if e.pump_status == 'ON' else 'ஆஃப்' }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-good">
+        <span class="lang-en">No irrigation events logged yet</span>
+        <span class="lang-ta">இன்னும் நீர்ப்பாசன நிகழ்வுகள் பதிவு செய்யப்படவில்லை</span>
+      </div>
+      {% endif %}
+    </div>
+  </details>
+
+  <footer>
+    <a class="report-link" href="/report">
+      <span class="lang-en">Download Today's Report (PDF)</span>
+      <span class="lang-ta">இன்றைய அறிக்கையை பதிவிறக்கவும் (PDF)</span>
+    </a>
+    <div class="footer-note">
+      <span class="lang-en">Autonomous Inspection Scout Drone — Field Health System</span>
+      <span class="lang-ta">தன்னியக்க ஆய்வு ஸ்கவுட் ட்ரோன் — வயல் ஆரோக்கிய அமைப்பு</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/static/sw.js').catch(function () {});
+  });
+}
+</script>
+<script>
+(function () {
+  var body = document.body;
+  var toggle = document.getElementById('langToggle');
+
+  function apply(lang) {
+    body.classList.remove('lang-en', 'lang-ta');
+    body.classList.add('lang-' + lang);
+    toggle.textContent = lang === 'en' ? 'தமிழ்' : 'English';
+    localStorage.setItem('agriguard_lang', lang);
+  }
+
+  var saved = localStorage.getItem('agriguard_lang') || 'en';
+  apply(saved);
+
+  toggle.addEventListener('click', function () {
+    var current = body.classList.contains('lang-ta') ? 'ta' : 'en';
+    apply(current === 'en' ? 'ta' : 'en');
+  });
+
+  var voiceBtn = document.getElementById('voiceBtn');
+  var voiceIcon = document.getElementById('voiceIcon');
+  var voiceStatus = document.getElementById('voiceStatus');
+  var voiceAudio = document.getElementById('voiceAudio');
+  var loadingText = { en: 'Generating audio…', ta: 'ஆடியோ தயாராகிறது…' };
+  var playingText = { en: 'Playing…', ta: 'ஒலிக்கிறது…' };
+
+  voiceBtn.addEventListener('click', function () {
+    var lang = body.classList.contains('lang-ta') ? 'ta' : 'en';
+
+    if (!voiceAudio.paused) {
+      voiceAudio.pause();
+      voiceAudio.currentTime = 0;
+      voiceBtn.classList.remove('playing');
+      voiceIcon.innerHTML = '&#9654;';
+      voiceStatus.textContent = '';
+      return;
+    }
+
+    voiceStatus.textContent = loadingText[lang];
+    voiceAudio.src = '/voice-report/' + lang + '?t=' + Date.now();
+    voiceAudio.play().then(function () {
+      voiceBtn.classList.add('playing');
+      voiceIcon.innerHTML = '&#9724;';
+      voiceStatus.textContent = playingText[lang];
+    }).catch(function () {
+      voiceStatus.textContent = '';
+    });
+  });
+
+  voiceAudio.addEventListener('ended', function () {
+    voiceBtn.classList.remove('playing');
+    voiceIcon.innerHTML = '&#9654;';
+    voiceStatus.textContent = '';
+  });
+
+  // Auto-refresh every 5s, but never while the voice report is playing —
+  // a plain meta-refresh would otherwise cut audio off mid-sentence.
+  setInterval(function () {
+    if (voiceAudio.paused) location.reload();
+  }, 5000);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Flight Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F3F6EF;
+    --surface: #FFFFFF;
+    --surface-2: #E9F0E2;
+    --ink: #16241A;
+    --ink-soft: #51604F;
+    --ink-faint: #7C8A78;
+    --line: #D6DFCD;
+    --accent: #2E7A38;
+    --accent-soft: #E1EFDA;
+    --scan: #2A7A8C;
+    --scan-soft: #DEF0F2;
+    --soil: #8C5A2A;
+    --soil-soft: #F2E6D6;
+    --alert: #C24A1B;
+    --alert-soft: #FBE4D8;
+    --shadow: 0 1px 2px rgba(20, 30, 18, 0.06), 0 8px 24px -12px rgba(20, 30, 18, 0.18);
+  }
+
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --ground: #10160E;
+      --surface: #171F14;
+      --surface-2: #1E2A19;
+      --ink: #E9F1E2;
+      --ink-soft: #A7B79F;
+      --ink-faint: #728068;
+      --line: #2C3826;
+      --accent: #5FC96B;
+      --accent-soft: #1F3320;
+      --scan: #5AC4D8;
+      --scan-soft: #17323A;
+      --soil: #D69A5C;
+      --soil-soft: #3A2A18;
+      --alert: #F0784A;
+      --alert-soft: #3C2216;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #10160E;
+    --surface: #171F14;
+    --surface-2: #1E2A19;
+    --ink: #E9F1E2;
+    --ink-soft: #A7B79F;
+    --ink-faint: #728068;
+    --line: #2C3826;
+    --accent: #5FC96B;
+    --accent-soft: #1F3320;
+    --scan: #5AC4D8;
+    --scan-soft: #17323A;
+    --soil: #D69A5C;
+    --soil-soft: #3A2A18;
+    --alert: #F0784A;
+    --alert-soft: #3C2216;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding: 48px 24px 72px;
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  h1 {
+    font-family: "Big Shoulders Display", sans-serif;
+    font-weight: 800;
+    font-size: clamp(34px, 5vw, 52px);
+    line-height: 0.98;
+    letter-spacing: 0.01em;
+    margin: 6px 0 0;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    font-size: 15.5px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    line-height: 1.55;
+    margin-top: 4px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--soil);
+    background: var(--soil-soft);
+    border: 1px solid color-mix(in srgb, var(--soil) 30%, transparent);
+    border-radius: 100px;
+    padding: 6px 12px;
+    width: fit-content;
+    margin-top: 4px;
+  }
+  .status-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--soil);
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 28px 30px 24px;
+  }
+
+  figure { margin: 0; }
+  figcaption {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-faint);
+    line-height: 1.5;
+    max-width: 70ch;
+  }
+
+  .panel-title {
+    font-family: "Big Shoulders Display", sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 0.01em;
+    margin: 0 0 2px;
+  }
+  .panel-kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  text { font-family: "IBM Plex Sans", sans-serif; fill: currentColor; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .swatch { width: 20px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1.6px solid; background: transparent; }
+  .tri { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid var(--alert); flex-shrink: 0; }
+  .diamond { width: 8px; height: 8px; background: var(--soil); transform: rotate(45deg); flex-shrink: 0; }
+
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 16px;
+    box-shadow: var(--shadow);
+  }
+  .phase-num {
+    font-family: "Big Shoulders Display", sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .phase-name {
+    font-weight: 600;
+    font-size: 14.5px;
+    margin-top: 8px;
+  }
+  .phase-desc {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    line-height: 1.5;
+    margin-top: 5px;
+  }
+
+  footer {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    line-height: 1.6;
+  }
+  footer strong { color: var(--ink-soft); font-weight: 600; }
+
+  @media (max-width: 720px) {
+    .phases { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .nav-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.04em;
+    color: var(--ink-soft); text-decoration: none; border: 1px solid var(--line);
+    border-radius: 100px; padding: 7px 14px; width: fit-content; background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .nav-link:hover { color: var(--accent); border-color: var(--accent); }
+
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 100px; padding: 6px 12px; width: fit-content; margin-top: 8px;
+  }
+  .live-badge.offline { color: var(--ink-faint); background: var(--surface-2); border-color: var(--line); }
+  .live-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .phase-banner {
+    font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 20px;
+    letter-spacing: 0.02em; color: var(--ink-faint); margin-top: 10px; transition: color 0.3s ease;
+  }
+  .phase-banner.phase-grid { color: var(--accent); }
+  .phase-banner.phase-scan { color: var(--scan); }
+  .phase-banner.phase-soil { color: var(--soil); }
+  .phase-banner.phase-return { color: var(--ink-soft); }
+  .phase-banner.phase-done { color: var(--accent); }
+
+  .sim-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 14px 0 18px; }
+  .sim-btn {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 12.5px; letter-spacing: 0.03em;
+    color: var(--surface); background: var(--accent); border: none; border-radius: 9px;
+    padding: 10px 18px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .sim-btn:hover { opacity: 0.92; }
+  .sim-btn:disabled { opacity: 0.55; cursor: default; }
+  .sim-status {
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink-soft);
+    flex: 1 1 260px; min-width: 0;
+  }
+  .sim-status.flagged { color: var(--alert); font-weight: 600; }
+  .sim-status.done { color: var(--accent); font-weight: 600; }
+  .sim-report-btn {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 12.5px;
+    color: var(--surface); background: var(--soil); text-decoration: none;
+    border-radius: 9px; padding: 10px 16px; box-shadow: var(--shadow);
+  }
+  @keyframes scanPulse { 0% { r: 14; opacity: 0.9; } 100% { r: 30; opacity: 0; } }
+  .scan-pulse { animation: scanPulse 0.7s ease-out; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <a class="nav-link" href="/dashboard">&#8592; Back to Live Dashboard</a>
+
+  <div>
+    <div class="eyebrow">Autonomous Inspection Scout Drone — Mission Concept</div>
+    <h1>Daily Inspection Flight Plan</h1>
+    <p class="subtitle">A lightweight, low-cost scout drone built for the one job heavy spraying drones aren't: flying low and slow enough for reliable leaf-level disease detection. It complements a farm's existing agricultural drones rather than replacing them — grid survey, a close 360° scan at each tree, a low-altitude soil-moisture pass, then an unassisted return to base.</p>
+    <div class="status-badge">Flight path simulated — hardware phase 2</div>
+    <div class="live-badge {{ '' if mission.drone_connected else 'offline' }}">
+      {{ 'Live data connected' if mission.drone_connected else 'Live data idle' }} — {{ mission.trees_scanned }} trees scanned today, {{ mission.phase_label }}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-kicker">Top-down mission map</div>
+    <div class="panel-title">Grid Survey → Tree Scan → Soil Pass → Return</div>
+
+    <div class="phase-banner" id="phaseBanner">Ready — press start</div>
+
+    <div class="sim-controls">
+      <button class="sim-btn" id="simBtn" type="button">&#9654; Start Flight Simulation</button>
+      <div class="sim-status" id="simStatus">Mission not started.</div>
+      <a class="sim-report-btn" id="simReportBtn" href="/report" target="_blank" style="display:none;">&#128196; View Today's Report</a>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 700 700" role="img" aria-label="Top-down map of the farm plot showing the drone's row-by-row grid flight path through five rows of three trees each, colored by each tree's real current detection status, a 360-degree close inspection revisit for trees the AI flagged as needing extra attention, a low-altitude soil-moisture pass, and a return path to base.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+          </marker>
+        </defs>
+
+        <!-- field boundary -->
+        <rect x="60" y="70" width="560" height="500" rx="6" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 6"></rect>
+        <text x="70" y="58" font-size="11" letter-spacing="0.08em" class="mono" fill="var(--ink-faint)">FARM BOUNDARY</text>
+
+        <!-- grid transit path: base -> row1..row5 (row-major, matches real position labels) -->
+        <polyline points="{{ base.x }},{{ base.y }} {% for cell in grid %}{{ cell.cx }},{{ cell.cy }} {% endfor %}"
+          fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round" marker-end="url(#arrow)"></polyline>
+
+        <!-- return path -->
+        <polyline points="{{ grid[-1].cx }},{{ grid[-1].cy }} 110,{{ base.y - 80 }} {{ base.x }},{{ base.y }}" fill="none" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="6 6"></polyline>
+
+        <!-- row labels -->
+        {% for row_y in [120, 220, 320, 420, 520] %}
+        <text x="35" y="{{ row_y + 4 }}" font-size="11" font-weight="600" class="mono" fill="var(--ink-faint)">R{{ loop.index }}</text>
+        {% endfor %}
+
+        <!-- trees: 5 rows x 3 columns, colored by REAL current detection status -->
+        {% for cell in grid %}
+        <g>
+          {% if cell.visited and cell.recommended_action == 'extra_orbit' %}
+          <circle cx="{{ cell.cx }}" cy="{{ cell.cy }}" r="23" fill="none" stroke="var(--alert)" stroke-width="1.8" stroke-dasharray="2 4"></circle>
+          {% endif %}
+          <circle id="tree-{{ loop.index0 }}" cx="{{ cell.cx }}" cy="{{ cell.cy }}" r="11"
+            fill="{{ 'var(--alert-soft)' if (cell.visited and not cell.is_healthy) else ('var(--accent-soft)' if cell.visited else 'var(--surface-2)') }}"
+            stroke="{{ 'var(--alert)' if (cell.visited and not cell.is_healthy) else ('var(--accent)' if cell.visited else 'var(--ink-faint)') }}"
+            stroke-width="1.6" stroke-dasharray="{{ '' if cell.visited else '2 3' }}">
+            <title>{{ cell.position }}{{ ' — ' ~ cell.label_display if cell.visited else ' — not yet visited' }}</title>
+          </circle>
+        </g>
+        {% endfor %}
+
+        <!-- soil pass marker (above the grid, drone drops here after the survey) -->
+        <g transform="translate(400,90)" fill="var(--soil)">
+          <rect x="-4" y="-4" width="8" height="8" transform="rotate(45)"></rect>
+        </g>
+        <text x="400" y="65" text-anchor="middle" font-size="10.5" letter-spacing="0.05em" class="mono" fill="var(--soil)">SOIL MOISTURE CHECK</text>
+
+        <!-- base station -->
+        <g transform="translate({{ base.x }},{{ base.y }})">
+          <polygon points="0,-16 14,-8 14,8 0,16 -14,8 -14,-8" fill="var(--surface-2)" stroke="var(--ink-soft)" stroke-width="1.8"></polygon>
+          <circle cx="0" cy="0" r="4" fill="var(--ink-soft)"></circle>
+        </g>
+        <text x="{{ base.x }}" y="{{ base.y + 40 }}" text-anchor="middle" font-size="12" font-weight="600" class="mono" fill="var(--ink-soft)">BASE</text>
+
+        <!-- animated drone marker, hidden until simulation starts -->
+        <g id="droneMarker" transform="translate({{ base.x }},{{ base.y }})" opacity="0" style="transition: transform 0.4s linear, opacity 0.3s ease;">
+          <circle id="droneScanRing" cx="0" cy="0" r="20" fill="none" stroke="var(--scan)" stroke-width="2" opacity="0"></circle>
+          <polygon points="0,-10 8,7 0,3 -8,7" fill="var(--scan)" stroke="var(--surface)" stroke-width="1"></polygon>
+        </g>
+      </svg>
+      <figcaption>
+        Tree colors reflect today's real detection results, live from the same database the AI writes to: green means the latest scan at that position was healthy, amber means diseased, grey means not yet visited. Phase 1 flies every tree in the grid. Phase 2 revisits only the positions the adaptive policy flagged for
+        <code>extra_orbit</code> — currently
+        <strong>{{ grid|selectattr('recommended_action', 'equalto', 'extra_orbit')|list|length }}</strong> of {{ grid|length }}.
+        Phase 3 checks soil moisture before the return leg.
+      </figcaption>
+    </figure>
+
+    <div class="legend">
+      <div class="legend-item"><span class="dot" style="border-color:var(--accent)"></span>Healthy (real data)</div>
+      <div class="legend-item"><span class="dot" style="border-color:var(--alert)"></span>Diseased (real data)</div>
+      <div class="legend-item"><span class="dot" style="border-color:var(--ink-faint)"></span>Not yet visited</div>
+      <div class="legend-item"><span class="tri"></span>Flagged for 360° close inspection</div>
+      <div class="legend-item"><span class="diamond"></span>Low-altitude soil check</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-kicker">Mission altitude profile</div>
+    <div class="panel-title">Altitude Drops at Every Tree, Deepest During the Soil Pass</div>
+
+    <figure>
+      <svg viewBox="0 0 960 230" role="img" aria-label="Line chart of drone altitude across the mission: cruise altitude during grid transit, shallow dips at each of the three tree scans, a deeper and longer dip during the low-altitude soil moisture pass on the final row, then a descent to zero altitude on return to base.">
+        <!-- gridlines -->
+        <g stroke="var(--line)" stroke-width="1">
+          <line x1="10" y1="40" x2="930" y2="40"></line>
+          <line x1="10" y1="95" x2="930" y2="95"></line>
+          <line x1="10" y1="140" x2="930" y2="140"></line>
+          <line x1="10" y1="172" x2="930" y2="172"></line>
+        </g>
+        <g class="mono" font-size="10.5" fill="var(--ink-faint)">
+          <text x="932" y="43">CRUISE</text>
+          <text x="932" y="98">SCAN</text>
+          <text x="932" y="143">SOIL PASS</text>
+          <text x="932" y="175">GROUND</text>
+        </g>
+
+        <polyline points="10,172 60,40 190,40 210,40 280,95 300,40 420,40 480,95 500,40 560,40 600,90 650,140 760,140 800,60 840,40 900,172"
+          fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>
+
+        <!-- scan dip markers -->
+        <circle cx="280" cy="95" r="4" fill="var(--scan)"></circle>
+        <circle cx="480" cy="95" r="4" fill="var(--alert)"></circle>
+        <rect x="646" y="136" width="8" height="8" fill="var(--soil)" transform="rotate(45 650 140)"></rect>
+
+        <!-- zone labels -->
+        <g class="mono" font-size="10.5" fill="var(--ink-faint)" text-anchor="middle">
+          <text x="35" y="200">DEPART</text>
+          <text x="150" y="200">ROW 4</text>
+          <text x="290" y="200">ROW 3 · SCAN</text>
+          <text x="490" y="200">ROW 2 · SCAN</text>
+          <text x="700" y="200">ROW 1 · SCAN + SOIL</text>
+          <text x="870" y="200">RETURN</text>
+        </g>
+      </svg>
+      <figcaption>Cruise altitude is held during grid transit, dips briefly for each tree's 360° scan, then drops to its lowest and longest point during the final row's soil-moisture pass — before climbing once more for the return leg.</figcaption>
+    </figure>
+  </div>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-num">01</div>
+      <div class="phase-name">Grid Survey</div>
+      <div class="phase-desc">Row-by-row sweep across all five rows at cruise altitude, capturing a frame at each tree.</div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">02</div>
+      <div class="phase-name">Tree Inspection</div>
+      <div class="phase-desc">A close 360° pass around flagged trees for a clearer disease read before moving on.</div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">03</div>
+      <div class="phase-name">Soil Moisture Pass</div>
+      <div class="phase-desc">Drops to low altitude along the final row to read soil moisture and trigger irrigation.</div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">04</div>
+      <div class="phase-name">Return to Base</div>
+      <div class="phase-desc">Unassisted return along a direct path, ready to charge for the next cycle.</div>
+    </div>
+  </div>
+
+  <footer>
+    <strong>What's real vs. concept:</strong> disease detection, irrigation logic, live dashboard, and the daily PDF report run on real captured images and sensor data today. This flight path is the planned mission for the physical airframe — the next build phase.
+    <br><strong>Why a scout drone, not a replacement:</strong> a farm's existing agricultural drones fly high and fast to cover ground efficiently for spraying — not built for the slow, close, low-altitude passes reliable leaf-level detection needs. This scout drone is small, light, and cheap enough to fly alongside them, doing the one job they structurally can't.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const GRID = {{ grid|tojson }};
+  const BASE = {{ base|tojson }};
+  const IRRIGATION = {{ (latest_irrigation|tojson) if latest_irrigation else 'null' }};
+  const SOIL_POINT = { x: 400, y: 90 };
+
+  const drone = document.getElementById("droneMarker");
+  const scanRing = document.getElementById("droneScanRing");
+  const btn = document.getElementById("simBtn");
+  const status = document.getElementById("simStatus");
+  const reportBtn = document.getElementById("simReportBtn");
+  const phaseBanner = document.getElementById("phaseBanner");
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  function setStatus(text, cls) {
+    status.textContent = text;
+    status.className = "sim-status" + (cls ? " " + cls : "");
+  }
+
+  function setPhase(text, cls) {
+    phaseBanner.textContent = text;
+    phaseBanner.className = "phase-banner" + (cls ? " phase-" + cls : "");
+  }
+
+  function pos(p) {
+    return { x: p.x !== undefined ? p.x : p.cx, y: p.y !== undefined ? p.y : p.cy };
+  }
+
+  function angleBetween(a, b) {
+    return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI + 90;
+  }
+
+  async function flyTo(point, ms) {
+    const target = pos(point);
+    const current = drone.__pos || pos(BASE);
+    const angle = angleBetween(current, target);
+    drone.setAttribute("transform", "translate(" + target.x + "," + target.y + ") rotate(" + angle + ")");
+    await sleep(ms || 420);
+    drone.setAttribute("transform", "translate(" + target.x + "," + target.y + ") rotate(0)");
+    drone.__pos = target;
+  }
+
+  async function pulseAt(cx, cy, ms) {
+    scanRing.setAttribute("cx", 0);
+    scanRing.setAttribute("cy", 0);
+    scanRing.classList.remove("scan-pulse");
+    void scanRing.offsetWidth;
+    scanRing.classList.add("scan-pulse");
+    await sleep(ms || 650);
+  }
+
+  async function orbit(cell) {
+    const treeEl = document.getElementById("tree-" + GRID.indexOf(cell));
+    const steps = 14;
+    const radius = 26;
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      const x = cell.cx + radius * Math.cos(t);
+      const y = cell.cy + radius * Math.sin(t);
+      drone.setAttribute("transform", "translate(" + x + "," + y + ") rotate(" + (t * 180 / Math.PI + 90) + ")");
+      await sleep(45);
+    }
+    drone.setAttribute("transform", "translate(" + cell.cx + "," + cell.cy + ")");
+    drone.__pos = { x: cell.cx, y: cell.cy };
+    if (treeEl) {
+      treeEl.setAttribute("r", "15");
+      await sleep(150);
+      treeEl.setAttribute("r", "11");
+    }
+  }
+
+  async function runSimulation() {
+    btn.disabled = true;
+    reportBtn.style.display = "none";
+    drone.style.opacity = "1";
+    drone.__pos = BASE;
+    drone.setAttribute("transform", "translate(" + BASE.x + "," + BASE.y + ")");
+
+    // ---- Phase 1: Grid Survey — visit every tree, show REAL detection result live ----
+    setPhase("PHASE 1 — GRID SURVEY", "grid");
+    setStatus("🛫 Departing base...");
+    await sleep(500);
+
+    for (const cell of GRID) {
+      await flyTo(cell, 380);
+      if (cell.visited) {
+        const icon = cell.is_healthy ? "✅" : "⚠️";
+        const statusWord = cell.is_healthy ? "Healthy" : "DISEASED";
+        setStatus(icon + " " + cell.position + " — " + statusWord + ": " + cell.label_display + " (" + Math.round(cell.confidence * 100) + "%, live data)", cell.is_healthy ? "" : "flagged");
+      } else {
+        setStatus("📍 " + cell.position + " — no data captured yet");
+      }
+      await sleep(280);
+    }
+
+    // ---- Phase 2: 360° Close Inspection — revisit only trees the adaptive policy flagged ----
+    const orbitTargets = GRID.filter((c) => c.visited && c.recommended_action === "extra_orbit");
+    setPhase("PHASE 2 — 360° CLOSE INSPECTION", "scan");
+    if (orbitTargets.length === 0) {
+      setStatus("🔍 No trees needed a closer look this cycle.");
+      await sleep(900);
+    } else {
+      setStatus("🔍 " + orbitTargets.length + " tree(s) flagged by the adaptive policy for a closer pass...");
+      await sleep(700);
+      for (const cell of orbitTargets) {
+        await flyTo(cell, 380);
+        setStatus("🔍 Orbiting " + cell.position + "...");
+        await orbit(cell);
+        setStatus("⚠️ " + cell.position + " confirmed — " + cell.label_display + " (" + Math.round(cell.confidence * 100) + "%). Treatment: " + cell.treatment, "flagged");
+        await sleep(900);
+      }
+    }
+
+    // ---- Phase 3: Low-Altitude Soil Pass ----
+    setPhase("PHASE 3 — LOW-ALTITUDE SOIL PASS", "soil");
+    await flyTo(SOIL_POINT, 420);
+    await pulseAt(SOIL_POINT.x, SOIL_POINT.y, 500);
+    if (IRRIGATION) {
+      setStatus("💧 Soil moisture: " + IRRIGATION.moisture + "% — Pump " + (IRRIGATION.pump_status === "ON" ? "running" : "off") + " (live data)");
+    } else {
+      setStatus("💧 No irrigation reading logged yet today.");
+    }
+    await sleep(1000);
+
+    // ---- Phase 4: Return to Base ----
+    setPhase("PHASE 4 — RETURN TO BASE", "return");
+    setStatus("🛬 Returning to base...");
+    await flyTo(BASE, 600);
+    setStatus("✅ Mission complete — generating report...", "done");
+    await sleep(700);
+
+    setStatus("✅ Report generated — click below to view.", "done");
+    setPhase("MISSION COMPLETE", "done");
+    reportBtn.style.display = "inline-block";
+    drone.style.opacity = "0";
+    btn.disabled = false;
+    btn.textContent = "▶ Replay Flight Simulation";
+  }
+
+  btn.addEventListener("click", runSimulation);
+})();
+</script>
+
+</body>
+</html>

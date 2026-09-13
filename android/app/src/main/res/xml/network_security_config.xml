@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      The Flask server runs as plain HTTP on whatever local network this
+      phone and the dev machine share, with no cert to manage during the
+      demo. The dev machine's IP changes across WiFi networks and
+      reconnects, and the server address is user-editable at runtime, see
+      SettingsDialog, so this can't be pinned to specific domains at build
+      time, allow cleartext app-wide instead.
+    -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

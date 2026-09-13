@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgriGuard — Live Camera Feed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12180F; --surface: #1A2216; --surface-2: #212B1B;
+    --ink: #ECF2E6; --ink-soft: #AAB8A2; --ink-faint: #76846F; --line: #2B3624;
+    --good: #6FCB86; --good-soft: #1D3324;
+    --urgent: #F0796A; --urgent-soft: #3B1E1A;
+    --water: #6FB3E8;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -12px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", -apple-system, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 28px 20px 40px;
+  }
+  h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 22px; margin: 0 0 2px; }
+  .sub { color: var(--ink-soft); font-size: 13.5px; margin-bottom: 20px; }
+  .frame-wrap {
+    position: relative; width: min(720px, 92vw); aspect-ratio: 4/3; background: var(--surface-2);
+    border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line);
+  }
+  .frame-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .placeholder {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--ink-faint); font-family: "IBM Plex Mono", monospace; font-size: 13px; text-align: center; padding: 20px;
+  }
+  .live-tag {
+    position: absolute; top: 14px; left: 14px; display: flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    background: rgba(0,0,0,0.55); color: #fff; padding: 5px 10px; border-radius: 100px;
+  }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--urgent); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  .result-card {
+    width: min(720px, 92vw); margin-top: 16px; background: var(--surface); border-radius: 14px;
+    padding: 18px 22px; box-shadow: var(--shadow); border: 1px solid var(--line);
+  }
+  .result-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .result-position { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink-faint); }
+  .result-time { font-size: 12px; color: var(--ink-faint); }
+  .result-label { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 20px; margin-top: 6px; }
+  .result-label.healthy { color: var(--good); }
+  .result-label.diseased { color: var(--urgent); }
+  .result-confidence { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+  .result-treatment {
+    margin-top: 12px; font-size: 13.5px; background: var(--surface-2); border-radius: 9px;
+    padding: 10px 14px; line-height: 1.45;
+  }
+  .result-action {
+    margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px;
+    font-weight: 700; color: var(--water); font-family: "IBM Plex Mono", monospace;
+  }
+  .waiting { color: var(--ink-faint); font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<h1>Live Camera Feed</h1>
+<div class="sub">Most recent frame received from the drone's camera, with the AI's verdict on it.</div>
+
+<div class="frame-wrap">
+  <span class="live-tag"><span class="live-dot"></span>LIVE</span>
+  {% if result %}
+  <img id="frameImg" src="/static/last_frame.jpg?t={{ range(1, 999999) | random }}" alt="Latest captured frame">
+  {% else %}
+  <div class="placeholder">Waiting for the first frame from the camera...</div>
+  {% endif %}
+</div>
+
+<div class="result-card" id="resultCard">
+  {% if result %}
+  <div class="result-top">
+    <span class="result-position">{{ result.position }}</span>
+    <span class="result-time" id="resultTime">{{ result.timestamp }}</span>
+  </div>
+  <div class="result-label {{ 'healthy' if result.is_healthy else 'diseased' }}" id="resultLabel">{{ result.label_display }}</div>
+  <div class="result-confidence" id="resultConfidence">{{ result.confidence }}% confidence</div>
+  {% if result.treatment and not result.is_healthy %}
+  <div class="result-treatment" id="resultTreatment"><strong>Do this:</strong> {{ result.treatment }}</div>
+  {% endif %}
+  <div class="result-action" id="resultAction">&#8635; Next pass: {{ result.recommended_action_label }}</div>
+  {% else %}
+  <div class="waiting" id="waitingText">Waiting for the first detection...</div>
+  {% endif %}
+</div>
+
+<script>
+  let lastTimestamp = {{ (result.timestamp|tojson) if result else 'null' }};
+
+  async function poll() {
+    try {
+      const res = await fetch("/live-data");
+      const data = await res.json();
+      if (data && data.timestamp && data.timestamp !== lastTimestamp) {
+        lastTimestamp = data.timestamp;
+        document.getElementById("frameImg") || location.reload();
+        const img = document.getElementById("frameImg");
+        if (img) img.src = "/static/last_frame.jpg?t=" + Date.now();
+
+        const card = document.getElementById("resultCard");
+        const healthyClass = data.is_healthy ? "healthy" : "diseased";
+        card.innerHTML =
+          '<div class="result-top">' +
+            '<span class="result-position">' + data.position + '</span>' +
+            '<span class="result-time">' + data.timestamp + '</span>' +
+          '</div>' +
+          '<div class="result-label ' + healthyClass + '">' + data.label_display + '</div>' +
+          '<div class="result-confidence">' + data.confidence + '% confidence</div>' +
+          (data.treatment && !data.is_healthy ? '<div class="result-treatment"><strong>Do this:</strong> ' + data.treatment + '</div>' : '') +
+          '<div class="result-action">&#8635; Next pass: ' + data.recommended_action_label + '</div>';
+      }
+    } catch (e) {}
+  }
+
+  function refreshPreview() {
+    const img = document.getElementById("frameImg");
+    if (img) {
+      img.src = "/static/last_frame.jpg?t=" + Date.now();
+    } else {
+      const placeholder = document.querySelector(".placeholder");
+      if (placeholder) {
+        const newImg = document.createElement("img");
+        newImg.id = "frameImg";
+        newImg.alt = "Latest captured frame";
+        newImg.src = "/static/last_frame.jpg?t=" + Date.now();
+        placeholder.replaceWith(newImg);
+      }
+    }
+  }
+
+  setInterval(poll, 1200);
+  setInterval(refreshPreview, 250);
+</script>
+
+</body>
+</html>

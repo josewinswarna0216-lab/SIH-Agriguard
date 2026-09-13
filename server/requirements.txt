@@ -1,0 +1,4 @@
+flask
+ai-edge-litert
+pillow
+numpy

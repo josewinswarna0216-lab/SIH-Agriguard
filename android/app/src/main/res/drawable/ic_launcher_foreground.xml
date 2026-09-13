@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Shield body: smaller, sharp angular hexagon silhouette -->
+    <path android:pathData="M54,30 L74,40 L74,62 L54,80 L34,62 L34,40 Z"
+        android:strokeColor="#C9A24B"
+        android:strokeWidth="2">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54" android:startY="30"
+                android:endX="54" android:endY="80"
+                android:startColor="#1D3324"
+                android:endColor="#3E8556" />
+        </aapt:attr>
+    </path>
+
+    <!-- Wheat sprig: central stem -->
+    <path android:pathData="M54,38 L54,74"
+        android:strokeColor="#F0DFAE"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round" />
+
+    <!-- Wheat barbs, 4 pairs tapering toward the top -->
+    <path android:pathData="M54,44 L47,39 M54,44 L61,39"
+        android:strokeColor="#F0DFAE" android:strokeWidth="2" android:strokeLineCap="round" />
+    <path android:pathData="M54,51 L46,46 M54,51 L62,46"
+        android:strokeColor="#F0DFAE" android:strokeWidth="2.1" android:strokeLineCap="round" />
+    <path android:pathData="M54,58 L45,53 M54,58 L63,53"
+        android:strokeColor="#F0DFAE" android:strokeWidth="2.2" android:strokeLineCap="round" />
+    <path android:pathData="M54,65 L45,60 M54,65 L63,60"
+        android:strokeColor="#F0DFAE" android:strokeWidth="2.2" android:strokeLineCap="round" />
+</vector>

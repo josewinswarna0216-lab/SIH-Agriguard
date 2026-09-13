@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgriGuard — System Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F8F2; --surface: #FFFFFF; --ink: #1E2B1A; --ink-soft: #5A6B54; --line: #E1E7D9;
+    --shadow: 0 1px 2px rgba(30,43,26,.05), 0 6px 18px -10px rgba(30,43,26,.16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #12180F; --surface: #1A2216; --ink: #ECF2E6; --ink-soft: #AAB8A2; --line: #2B3624;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px -10px rgba(0,0,0,.5); }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", -apple-system, sans-serif;
+    height: 100vh; display: flex; flex-direction: column;
+  }
+  header { padding: 14px 22px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  header h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 19px; margin: 0; }
+  header .sub { font-size: 13px; color: var(--ink-soft); }
+  html, body { height: 100%; }
+  .panes { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 12px 12px; min-height: 0; }
+  .pane { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .pane-label {
+    font-family: "Manrope", sans-serif; font-weight: 700; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--ink-soft); padding: 10px 16px; border-bottom: 1px solid var(--line); flex-shrink: 0;
+  }
+  iframe { flex: 1; border: none; width: 100%; background: var(--surface); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AgriGuard — System Overview</h1>
+  <span class="sub">Live field detection &amp; flight mission plan, side by side</span>
+</header>
+
+<div class="panes">
+  <div class="pane">
+    <div class="pane-label">Farmer Dashboard — Live</div>
+    <iframe src="/dashboard" title="Live Farmer Dashboard"></iframe>
+  </div>
+  <div class="pane">
+    <div class="pane-label">Autonomous Flight Mission Plan</div>
+    <iframe src="/mission-plan" title="Flight Mission Plan"></iframe>
+  </div>
+</div>
+
+</body>
+</html>

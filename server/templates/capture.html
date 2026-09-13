@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AgriGuard — Camera Capture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12180F; --surface: #1A2216; --surface-2: #212B1B;
+    --ink: #ECF2E6; --ink-soft: #AAB8A2; --ink-faint: #76846F; --line: #2B3624;
+    --good: #6FCB86; --urgent: #F0796A; --water: #6FB3E8;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -12px rgba(0,0,0,.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", -apple-system, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 18px 16px 32px;
+  }
+  h1 { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 19px; margin: 0 0 2px; }
+  .sub { color: var(--ink-soft); font-size: 12.5px; margin-bottom: 14px; text-align: center; }
+
+  .video-wrap {
+    position: relative; width: min(480px, 100%); aspect-ratio: 4/3; background: #000;
+    border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line);
+  }
+  video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rec-tag {
+    position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    background: rgba(0,0,0,0.6); color: #fff; padding: 5px 10px; border-radius: 100px;
+  }
+  .rec-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+  .rec-dot.active { background: var(--urgent); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity 0.15s ease; }
+  .flash.on { opacity: 0.35; }
+
+  .controls { width: min(480px, 100%); margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field input, .field select {
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; padding: 9px 12px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink);
+  }
+  .btn-row { display: flex; gap: 10px; }
+  button {
+    flex: 1; font-family: "Manrope", sans-serif; font-weight: 700; font-size: 14px;
+    border: none; border-radius: 10px; padding: 13px; cursor: pointer;
+  }
+  #startBtn { background: var(--good); color: #10160E; }
+  #stopBtn { background: var(--urgent); color: #fff; }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  .status-card {
+    width: min(480px, 100%); margin-top: 14px; background: var(--surface); border-radius: 12px;
+    padding: 14px 16px; box-shadow: var(--shadow); border: 1px solid var(--line); font-size: 13px;
+  }
+  .status-line { display: flex; justify-content: space-between; color: var(--ink-soft); }
+  .status-line + .status-line { margin-top: 6px; }
+  .status-line strong { color: var(--ink); }
+  .healthy-text { color: var(--good); }
+  .diseased-text { color: var(--urgent); }
+
+  a.live-link {
+    margin-top: 14px; font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--water);
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>Camera Capture</h1>
+<div class="sub">Point this at real leaves, or at a screen playing field footage. Frames stream to the AI automatically while running.</div>
+
+<div class="video-wrap">
+  <span class="rec-tag"><span class="rec-dot" id="recDot"></span><span id="recLabel">STANDBY</span></span>
+  <video id="video" autoplay playsinline muted></video>
+  <div class="flash" id="flash"></div>
+</div>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<div class="controls">
+  <div class="field">
+    <label>Position Label</label>
+    <input type="text" id="positionInput" value="Row 1 - Tree 1" placeholder="e.g. Row 1 - Tree 1">
+  </div>
+  <div class="field">
+    <label>Capture Interval</label>
+    <select id="intervalSelect">
+      <option value="1500">Every 1.5s</option>
+      <option value="2000" selected>Every 2s</option>
+      <option value="3000">Every 3s</option>
+      <option value="5000">Every 5s</option>
+    </select>
+  </div>
+  <div class="btn-row">
+    <button id="startBtn">&#9654; Start Streaming</button>
+    <button id="stopBtn" disabled>&#9632; Stop</button>
+  </div>
+</div>
+
+<div class="status-card" id="statusCard">
+  <div class="status-line"><span>Status</span><strong id="statusText">Camera not started</strong></div>
+</div>
+
+<a class="live-link" href="/live" target="_blank">Open the full Live Camera Feed page &#8594;</a>
+
+<script>
+(function () {
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const flash = document.getElementById("flash");
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const recDot = document.getElementById("recDot");
+  const recLabel = document.getElementById("recLabel");
+  const positionInput = document.getElementById("positionInput");
+  const intervalSelect = document.getElementById("intervalSelect");
+  const statusCard = document.getElementById("statusCard");
+
+  let stream = null;
+  let timer = null;
+  let previewTimer = null;
+  let frameCount = 0;
+  const PREVIEW_INTERVAL_MS = 250;
+
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      video.srcObject = stream;
+    } catch (err) {
+      statusCard.innerHTML = '<div class="status-line"><span>Error</span><strong class="diseased-text">' + err.message + '</strong></div>';
+      throw err;
+    }
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+    }
+  }
+
+  function captureAndSend() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    flash.classList.add("on");
+    setTimeout(() => flash.classList.remove("on"), 150);
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      frameCount += 1;
+      const formData = new FormData();
+      formData.append("image", blob, "capture.jpg");
+      formData.append("position", positionInput.value || "unknown");
+
+      try {
+        const res = await fetch("/predict", { method: "POST", body: formData });
+        const data = await res.json();
+        const healthyClass = data.is_healthy ? "healthy-text" : "diseased-text";
+        statusCard.innerHTML =
+          '<div class="status-line"><span>Frame</span><strong>#' + frameCount + '</strong></div>' +
+          '<div class="status-line"><span>Result</span><strong class="' + healthyClass + '">' + data.status.replace(/___/g, " ").replace(/_/g, " ") + '</strong></div>' +
+          '<div class="status-line"><span>Confidence</span><strong>' + (data.confidence * 100).toFixed(1) + '%</strong></div>' +
+          '<div class="status-line"><span>Next pass</span><strong>' + data.recommended_action_label + '</strong></div>';
+      } catch (err) {
+        statusCard.innerHTML = '<div class="status-line"><span>Error</span><strong class="diseased-text">' + err.message + '</strong></div>';
+      }
+    }, "image/jpeg", 0.85);
+  }
+
+  function sendPreviewFrame() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const formData = new FormData();
+      formData.append("image", blob, "preview.jpg");
+      fetch("/stream-frame", { method: "POST", body: formData }).catch(() => {});
+    }, "image/jpeg", 0.6);
+  }
+
+  startBtn.addEventListener("click", async () => {
+    startBtn.disabled = true;
+    await startCamera();
+    stopBtn.disabled = false;
+    recDot.classList.add("active");
+    recLabel.textContent = "STREAMING";
+    frameCount = 0;
+    const interval = parseInt(intervalSelect.value, 10);
+    timer = setInterval(captureAndSend, interval);
+    previewTimer = setInterval(sendPreviewFrame, PREVIEW_INTERVAL_MS);
+  });
+
+  stopBtn.addEventListener("click", () => {
+    clearInterval(timer);
+    clearInterval(previewTimer);
+    stopCamera();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    recDot.classList.remove("active");
+    recLabel.textContent = "STANDBY";
+  });
+})();
+</script>
+
+</body>
+</html>

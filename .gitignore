@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Android / Gradle
+android/build/
+android/app/build/
+android/.gradle/
+android/.idea/
+android/local.properties
+android/*.iml
+
+# Generated/runtime data (regenerated at runtime, not source)
+server/events.db
+server/reports/*.pdf
+server/audio/*.mp3
+server/static/last_frame*.jpg

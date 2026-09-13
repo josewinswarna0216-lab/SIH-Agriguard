@@ -1,0 +1,549 @@
+<title>3D Flight Simulation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F3F6EF; --surface: #FFFFFF; --surface-2: #E9F0E2;
+    --ink: #16241A; --ink-soft: #51604F; --ink-faint: #7C8A78; --line: #D6DFCD;
+    --accent: #2E7A38; --accent-soft: #E1EFDA; --scan: #2A7A8C; --scan-soft: #DEF0F2;
+    --soil: #8C5A2A; --soil-soft: #F2E6D6; --alert: #C24A1B; --alert-soft: #FBE4D8;
+    --field: #DCE9D2; --field-line: #C3D6B6;
+    --shadow: 0 1px 2px rgba(20,30,18,.06), 0 8px 24px -12px rgba(20,30,18,.18);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --ground: #10160E; --surface: #171F14; --surface-2: #1E2A19;
+      --ink: #E9F1E2; --ink-soft: #A7B79F; --ink-faint: #728068; --line: #2C3826;
+      --accent: #5FC96B; --accent-soft: #1F3320; --scan: #5AC4D8; --scan-soft: #17323A;
+      --soil: #D69A5C; --soil-soft: #3A2A18; --alert: #F0784A; --alert-soft: #3C2216;
+      --field: #1A2617; --field-line: #263320;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #10160E; --surface: #171F14; --surface-2: #1E2A19;
+    --ink: #E9F1E2; --ink-soft: #A7B79F; --ink-faint: #728068; --line: #2C3826;
+    --accent: #5FC96B; --accent-soft: #1F3320; --scan: #5AC4D8; --scan-soft: #17323A;
+    --soil: #D69A5C; --soil-soft: #3A2A18; --alert: #F0784A; --alert-soft: #3C2216;
+    --field: #1A2617; --field-line: #263320;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: "IBM Plex Sans", system-ui, sans-serif; padding: 40px 24px 64px; }
+  .page { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+  h1 { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: clamp(30px,4.4vw,46px); line-height: .98; margin: 6px 0 0; text-wrap: balance; }
+  .subtitle { font-size: 15px; color: var(--ink-soft); max-width: 68ch; line-height: 1.55; margin-top: 4px; }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 7px; font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--soil);
+    background: var(--soil-soft); border: 1px solid color-mix(in srgb, var(--soil) 30%, transparent);
+    border-radius: 100px; padding: 6px 12px; width: fit-content; margin-top: 4px;
+  }
+  .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--soil); }
+
+  .rounds-key { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .round-chip {
+    display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 500;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 100px; padding: 5px 12px 5px 8px;
+    color: var(--ink-faint); transition: border-color .2s, color .2s, background .2s;
+  }
+  .round-chip .n {
+    font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 13px;
+    width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); color: var(--ink-faint);
+  }
+  .round-chip.active { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .round-chip.active .n { background: var(--accent); color: var(--surface); }
+  .round-chip.done { color: var(--ink-soft); }
+  .round-chip.done .n { background: var(--ink-faint); color: var(--surface); }
+
+  .layout { display: grid; grid-template-columns: 1.7fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 24px 26px 20px; }
+  .panel-kicker { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: baseline; }
+  .panel-title { font-family: "Big Shoulders Display", sans-serif; font-weight: 700; font-size: 19px; margin: 0 0 14px; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+  .drag-hint { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ink-faint); text-transform: none; letter-spacing: 0; }
+
+  /* ---- 3D scene ---- */
+  .stage { width: 100%; aspect-ratio: 16 / 13; perspective: 1500px; perspective-origin: 50% 20%; touch-action: none; cursor: grab; user-select: none; overflow: hidden; border-radius: 10px; }
+  #treeLayer { transform-style: preserve-3d; }
+  .stage.dragging { cursor: grabbing; }
+  .scene { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+  #groundLayer { transform-style: preserve-3d; }
+  .ground-tile {
+    position: absolute; left: 50%; top: 66%; width: 46px; height: 46px; margin: -23px 0 0 -23px;
+    transform-style: preserve-3d;
+    background: var(--field); border: 1px solid var(--field-line);
+    transition: filter .6s ease;
+  }
+  .ground-tile.soil-active { filter: sepia(0.45) saturate(1.3) brightness(0.97); }
+  .marker { position: absolute; left: 50%; top: 66%; transform-style: preserve-3d; }
+  .tree { width: 0; height: 0; }
+  .tree-trunk {
+    position: absolute; left: 50%; top: 0; width: 4px; height: 18px; margin-left: -2px;
+    background: linear-gradient(180deg, #8a6a44, #5b4128); border-radius: 2px;
+    transform: translate3d(0, -18px, 0);
+  }
+  .tree-canopy-wrap { position: absolute; left: 50%; top: 0; transform: translate3d(0, -32px, 0); }
+  .tree-canopy {
+    width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--accent) 55%, white), var(--accent) 60%, color-mix(in srgb, var(--accent) 80%, black) 100%);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 70%, black);
+    box-shadow: 0 10px 14px -8px rgba(0,0,0,0.35);
+    transition: background .4s, border-color .4s;
+  }
+  .tree.diseased .tree-canopy {
+    background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--alert) 55%, white), var(--alert) 60%, color-mix(in srgb, var(--alert) 80%, black) 100%);
+    border-color: color-mix(in srgb, var(--alert) 70%, black);
+  }
+  .tree.scanned .tree-canopy { box-shadow: 0 10px 14px -8px rgba(0,0,0,0.35), 0 0 0 3px var(--scan-soft); }
+  .orbit-ring {
+    width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%;
+    border: 1.6px dashed var(--scan); transform: rotateX(90deg); opacity: 0; transition: opacity .25s;
+  }
+  .orbit-ring.alert { border-color: var(--alert); }
+  .base-pad { width: 32px; height: 32px; margin: -16px 0 0 -16px; }
+  .base-pad-shape { width: 100%; height: 100%; clip-path: polygon(50% 0%, 100% 27%, 100% 73%, 50% 100%, 0% 73%, 0% 27%); background: var(--surface-2); border: 2px solid var(--ink-soft); }
+  .drone-shadow { width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--ink); opacity: .12; transition: width .3s, height .3s, opacity .3s; }
+  .alt-pole { width: 2px; margin-left: -1px; background: repeating-linear-gradient(180deg, var(--scan) 0 4px, transparent 4px 9px); transform-origin: bottom center; }
+  .drone-3d { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+  .drone-arm { position: absolute; width: 15px; height: 2px; background: var(--ink-soft); top: 50%; left: 50%; }
+  .drone-arm.a1 { transform: translate(-50%,-50%) rotate(45deg); }
+  .drone-arm.a2 { transform: translate(-50%,-50%) rotate(-45deg); }
+  .drone-rotor { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--surface); border: 1.4px solid var(--accent); }
+  .drone-body { position: absolute; width: 8px; height: 8px; left: 50%; top: 50%; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--accent); }
+  .alt-tag {
+    position: absolute; left: 50%; top: 50%; transform: translate(10px, -32px);
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px;
+    white-space: nowrap; box-shadow: var(--shadow); color: var(--ink);
+  }
+  .field-caption {
+    position: absolute; left: 50%; top: 66%; transform: translate3d(-20px, 0, 155px) rotateX(90deg);
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .08em; color: var(--ink-faint);
+  }
+
+  .hud { display: flex; flex-direction: column; gap: 16px; }
+  .controls { display: flex; gap: 10px; }
+  button {
+    font-family: "IBM Plex Sans", sans-serif; font-weight: 600; font-size: 13px;
+    border-radius: 8px; padding: 9px 16px; cursor: pointer; border: 1px solid transparent; transition: opacity .15s;
+  }
+  button:hover { opacity: .85; }
+  button:focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); color: var(--surface); }
+  .btn-secondary { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+
+  .progress-track { height: 6px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .1s linear; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-faint); margin-top: 6px; font-family: "IBM Plex Mono", monospace; }
+
+  .status-line { font-family: "Big Shoulders Display", sans-serif; font-weight: 700; font-size: 20px; min-height: 26px; text-wrap: balance; }
+  .status-sub { font-size: 12.5px; color: var(--ink-faint); margin-top: 2px; min-height: 16px; }
+
+  .altitude-row { display: flex; gap: 16px; align-items: flex-end; }
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .gauge-track { width: 26px; height: 120px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; display: flex; align-items: flex-end; overflow: hidden; }
+  .gauge-fill { width: 100%; background: var(--accent); height: 4%; transition: height .5s ease, background .3s ease; }
+  .gauge-label { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .06em; color: var(--ink-faint); text-transform: uppercase; }
+  .gauge-state { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-weight: 500; text-align: center; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+  .stat-num { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 22px; color: var(--accent); line-height: 1; }
+  .stat-num.alert { color: var(--alert); }
+  .stat-label { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+
+  .log-panel { display: flex; flex-direction: column; }
+  .log-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; padding-right: 4px; }
+  .log-entry { border-left: 3px solid var(--ink-faint); background: var(--surface-2); border-radius: 0 8px 8px 0; padding: 8px 10px; font-size: 12.5px; line-height: 1.4; animation: slideIn .25s ease; }
+  .log-entry[data-tag="healthy"] { border-color: var(--accent); }
+  .log-entry[data-tag="alert"] { border-color: var(--alert); background: var(--alert-soft); }
+  .log-entry[data-tag="soil"] { border-color: var(--soil); }
+  .log-entry[data-tag="mission"] { border-color: var(--ink-soft); font-weight: 600; }
+  .log-tag { font-family: "IBM Plex Mono", monospace; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); margin-right: 6px; }
+  .log-time { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--ink-faint); float: right; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes slideIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  }
+
+  footer { font-size: 12.5px; color: var(--ink-faint); border-top: 1px solid var(--line); padding-top: 16px; line-height: 1.6; }
+  footer strong { color: var(--ink-soft); font-weight: 600; }
+</style>
+
+<div class="page">
+
+  <div>
+    <div class="eyebrow">Autonomous Agricultural Microdrone — Mission Concept</div>
+    <h1>3D Flight Simulation</h1>
+    <p class="subtitle">The same three-round mission, seen in 3D so the altitude change is unmistakable — watch the drone physically drop toward the field for the soil pass, with a live height reading against a measurement pole.</p>
+    <div class="status-badge">Flight path simulated — hardware phase 2</div>
+    <div class="rounds-key">
+      <div class="round-chip" id="chip-1"><span class="n">1</span>Grid Survey</div>
+      <div class="round-chip" id="chip-2"><span class="n">2</span>Tree Scan (360°)</div>
+      <div class="round-chip" id="chip-3"><span class="n">3</span>Soil Pass</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-kicker"><span id="mapTitle">Round 1 — Grid Survey</span><span class="drag-hint">drag to rotate view</span></div>
+      <div class="stage" id="stage">
+        <div class="scene" id="scene">
+          <div id="groundLayer"></div>
+          <div class="field-caption">FARM PLOT — 4 ROWS × 5 TREES</div>
+          <div id="treeLayer"></div>
+          <div class="marker" id="baseMarker"><div class="base-pad"><div class="base-pad-shape"></div></div></div>
+          <div class="marker" id="orbitRingMarker"><div class="orbit-ring" id="orbitRing"></div></div>
+          <div class="marker" id="shadowMarker"><div class="drone-shadow"></div></div>
+          <div class="marker" id="poleMarker"><div class="alt-pole" id="altPole"></div></div>
+          <div class="marker" id="droneMarker">
+            <div class="drone-3d" id="droneBody">
+              <div class="drone-arm a1"></div><div class="drone-arm a2"></div>
+              <div class="drone-rotor" style="left:-1px;top:-1px;"></div>
+              <div class="drone-rotor" style="right:-1px;top:-1px;"></div>
+              <div class="drone-rotor" style="left:-1px;bottom:-1px;"></div>
+              <div class="drone-rotor" style="right:-1px;bottom:-1px;"></div>
+              <div class="drone-body"></div>
+            </div>
+            <div class="alt-tag" id="altTag">18m</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:14px;">
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:10px;height:10px;border-radius:50%;border:1.6px solid var(--accent);display:inline-block;"></span>Tree (scanned = thicker ring)</div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--alert);display:inline-block;"></span>Disease flagged</div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:2px;height:14px;background:repeating-linear-gradient(180deg,var(--scan) 0 3px,transparent 3px 6px);display:inline-block;"></span>Altitude pole (ground → drone)</div>
+      </div>
+    </div>
+
+    <div class="hud">
+      <div class="panel">
+        <div class="panel-kicker">Mission control</div>
+        <div class="controls" style="margin-bottom:16px;">
+          <button class="btn-primary" id="playBtn">Pause</button>
+          <button class="btn-secondary" id="restartBtn">Restart</button>
+        </div>
+
+        <div class="status-line" id="statusLine">Departing base…</div>
+        <div class="status-sub" id="statusSub">Mission started</div>
+
+        <div class="progress-track" style="margin-top:14px;"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label"><span id="elapsedLabel">00:00</span><span id="totalLabel">00:00</span></div>
+
+        <div class="altitude-row" style="margin-top:18px;">
+          <div class="gauge-wrap">
+            <div class="gauge-label">Altitude</div>
+            <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
+            <div class="gauge-state" id="gaugeState">Ground<br><span class="mono" id="gaugeMeters" style="color:var(--ink-faint);">0m</span></div>
+          </div>
+          <div class="stat-grid" style="flex:1;">
+            <div class="stat"><div class="stat-num" id="statTrees">0</div><div class="stat-label">Trees Scanned</div></div>
+            <div class="stat"><div class="stat-num alert" id="statDisease">0</div><div class="stat-label">Diseased</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel log-panel">
+        <div class="panel-kicker">Mission log</div>
+        <div class="log-list" id="logList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <strong>What's real vs. concept:</strong> disease detection, irrigation logic, the live dashboard, and the daily PDF report run on real captured images and sensor data today. This flight path — and the altitude shown here — is the planned mission for the physical airframe, controlled in practice by a barometric altimeter for cruise altitude and a downward-facing rangefinder for precise low-altitude hold during the soil pass.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const COLS = [0, 38, 75, 113, 150];
+  const ROWS = [128, 85, 43, 0]; // visiting order: nearest base first
+  const ROW_LABEL = { 128: "Row 4", 85: "Row 3", 43: "Row 2", 0: "Row 1" };
+  const COL_LABEL = { 0: "Tree 1", 38: "Tree 2", 75: "Tree 3", 113: "Tree 4", 150: "Tree 5" };
+  const DISEASED = { x: 150, z: 43 }; // Row 2 · Tree 5
+  const ALT_PX = { GROUND: 0, SOIL: 16, SCAN: 32, CRUISE: 70 };
+  const CANOPY_Y = 32; // height the drone orbits at during a tree scan — matches the canopy graphic
+  const ORBIT_RADIUS = 20;
+  const ALT_M = { GROUND: "0m", SOIL: "3m", SCAN: "10m", CRUISE: "18m" };
+
+  const treeLayer = document.getElementById('treeLayer');
+  ROWS.forEach(z => COLS.forEach(x => {
+    const m = document.createElement('div');
+    m.className = 'marker'; m.id = 't-' + x + '-' + z;
+    m.style.transform = 'translate3d(' + x + 'px,0,' + z + 'px)';
+    m.innerHTML = '<div class="tree"><div class="tree-trunk"></div><div class="tree-canopy-wrap"><div class="tree-canopy"></div></div></div>';
+    treeLayer.appendChild(m);
+  }));
+
+  // ground built from tiles positioned with the exact same translate3d(x,0,z) convention as the trees,
+  // so it's guaranteed to align with them regardless of how a single large rotated plane would foreshorten
+  const groundLayer = document.getElementById('groundLayer');
+  const TILE = 38;
+  for (let gx = -60; gx <= 150 + TILE; gx += TILE) {
+    for (let gz = -60; gz <= 128 + TILE; gz += TILE) {
+      const t = document.createElement('div');
+      t.className = 'ground-tile';
+      t.style.transform = 'translate3d(' + gx + 'px,0,' + gz + 'px) rotateX(90deg)';
+      groundLayer.appendChild(t);
+    }
+  }
+
+  // ---- build the 3-round path + segment timeline (x,z grid units) ----
+  const segments = [];
+  let cursor = [-24, 130];
+
+  function moveTo(pt, duration, status, sub, altitude, extra) {
+    if (cursor[0] === pt[0] && cursor[1] === pt[1]) return;
+    segments.push(Object.assign({ from: cursor.slice(), to: pt.slice(), duration, status, sub, altitude }, extra || {}));
+    cursor = pt.slice();
+  }
+  function dwellAt(pt, duration, status, sub, altitude, extra) {
+    segments.push(Object.assign({ from: pt.slice(), to: pt.slice(), duration, dwell: true, status, sub, altitude }, extra || {}));
+  }
+
+  function flyRound(opts) {
+    ROWS.forEach((z, ri) => {
+      const order = ri % 2 === 0 ? COLS : COLS.slice().reverse();
+      order.forEach((x) => {
+        const label = ROW_LABEL[z] + " · " + COL_LABEL[x];
+        moveTo([x, z], opts.hop, "Flying to " + label, opts.roundLabel, opts.altitude, { roundLabel: opts.roundLabel });
+        if (opts.dwell) {
+          const isSick = x === DISEASED.x && z === DISEASED.z;
+          dwellAt([x, z], opts.dwellDur, "Scanning " + label + "…", "360° close inspection", "SCAN", {
+            ring: true, treeId: 't-' + x + '-' + z, roundLabel: opts.roundLabel,
+            result: isSick ? 'diseased' : 'healthy',
+            log: { tag: isSick ? 'alert' : 'healthy', text: label + (isSick ? " — Tomato___Late_blight flagged" : " — Healthy") }
+          });
+        }
+      });
+      if (ri < ROWS.length - 1) {
+        moveTo([order[order.length - 1], ROWS[ri + 1]], opts.hop, "Repositioning between rows", opts.roundLabel, opts.altitude, { roundLabel: opts.roundLabel });
+      }
+    });
+  }
+  function reposition(toZ, roundLabel) {
+    moveTo([0, toZ], 750, "Repositioning for next pass…", roundLabel, "CRUISE", { roundLabel: roundLabel });
+  }
+
+  moveTo([0, 128], 900, "Departing base…", "Round 1 — Grid Survey", "CRUISE", { roundLabel: "Round 1 — Grid Survey" });
+  segments[segments.length - 1].roundStart = 1;
+  flyRound({ hop: 350, dwell: false, altitude: "CRUISE", roundLabel: "Round 1 — Grid Survey" });
+  segments.push({ marker: true, log: { tag: 'mission', text: 'Round 1 complete — grid survey finished, 20 trees imaged' } });
+
+  reposition(128, "Round 2 — Tree Scan");
+  segments[segments.length - 1].roundStart = 2;
+  flyRound({ hop: 320, dwell: true, dwellDur: 900, altitude: "SCAN", roundLabel: "Round 2 — Tree Scan" });
+  segments.push({ marker: true, log: { tag: 'mission', text: 'Round 2 complete — 20 trees scanned, 1 disease flagged' } });
+
+  reposition(128, "Round 3 — Soil Pass");
+  segments[segments.length - 1].roundStart = 3;
+  flyRound({ hop: 420, dwell: false, altitude: "SOIL", roundLabel: "Round 3 — Soil Pass" });
+  segments.push({ marker: true, log: { tag: 'soil', text: 'Round 3 complete — soil moisture pass finished, average 24% — Pump ON' } });
+
+  moveTo([-14, 68], 900, "Returning to Base", "Direct path home", "CRUISE", { roundLabel: "Return to Base" });
+  moveTo([-24, 130], 900, "Docking at Base", "Mission complete", "GROUND", {
+    roundLabel: "Return to Base",
+    log: { tag: 'mission', text: 'Mission complete — 20 trees inspected, 1 disease flagged, irrigation triggered once' }
+  });
+
+  const totalDuration = segments.reduce((s, seg) => s + (seg.duration || 0), 0);
+
+  // ---- DOM refs ----
+  const stage = document.getElementById('stage');
+  const scene = document.getElementById('scene');
+  const droneMarker = document.getElementById('droneMarker');
+  const shadowMarker = document.getElementById('shadowMarker');
+  const poleMarker = document.getElementById('poleMarker');
+  const altPole = document.getElementById('altPole');
+  const altTag = document.getElementById('altTag');
+  const orbitRingMarker = document.getElementById('orbitRingMarker');
+  const orbitRing = document.getElementById('orbitRing');
+  const droneShadowEl = shadowMarker.querySelector('.drone-shadow');
+  const mapTitle = document.getElementById('mapTitle');
+  const statusLine = document.getElementById('statusLine');
+  const statusSub = document.getElementById('statusSub');
+  const progressFill = document.getElementById('progressFill');
+  const elapsedLabel = document.getElementById('elapsedLabel');
+  const totalLabel = document.getElementById('totalLabel');
+  const gaugeFill = document.getElementById('gaugeFill');
+  const gaugeState = document.getElementById('gaugeState');
+  const gaugeMeters = document.getElementById('gaugeMeters');
+  const logList = document.getElementById('logList');
+  const statTrees = document.getElementById('statTrees');
+  const statDisease = document.getElementById('statDisease');
+  const playBtn = document.getElementById('playBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const chips = [null, document.getElementById('chip-1'), document.getElementById('chip-2'), document.getElementById('chip-3')];
+
+  const altLevels = { GROUND: { h: 4, color: 'var(--ink-faint)' }, SOIL: { h: 25, color: 'var(--soil)' }, SCAN: { h: 55, color: 'var(--scan)' }, CRUISE: { h: 85, color: 'var(--accent)' } };
+  totalLabel.textContent = fmt(totalDuration);
+
+  let idx = 0, segElapsed = 0, playing = true, lastTs = null;
+  let treesScanned = 0, diseasedCount = 0;
+
+  function fmt(ms) { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+
+  function setAltitude(level) {
+    const cfg = altLevels[level];
+    gaugeFill.style.height = cfg.h + '%'; gaugeFill.style.background = cfg.color;
+    gaugeState.innerHTML = level.charAt(0) + level.slice(1).toLowerCase() + '<br><span class="mono" style="color:var(--ink-faint);">' + ALT_M[level] + '</span>';
+  }
+  function setChip(n) {
+    for (let i = 1; i <= 3; i++) {
+      chips[i].classList.remove('active', 'done');
+      if (i < n) chips[i].classList.add('done');
+      if (i === n) chips[i].classList.add('active');
+    }
+  }
+  function addLog(entry) {
+    const el = document.createElement('div');
+    el.className = 'log-entry'; el.dataset.tag = entry.tag;
+    const totalElapsed = segments.slice(0, idx).reduce((s, seg) => s + (seg.duration || 0), 0) + segElapsed;
+    el.innerHTML = '<span class="log-time">' + fmt(totalElapsed) + '</span><span class="log-tag">' + entry.tag + '</span>' + entry.text;
+    logList.appendChild(el); logList.scrollTop = logList.scrollHeight;
+  }
+
+  function enterSegment(seg) {
+    if (seg.marker) { if (seg.log) addLog(seg.log); return; }
+    statusLine.textContent = seg.status; statusSub.textContent = seg.sub || '';
+    if (seg.roundLabel) mapTitle.textContent = seg.roundLabel;
+    if (seg.roundStart) setChip(seg.roundStart);
+    setAltitude(seg.altitude);
+    document.querySelectorAll('.ground-tile').forEach(t => t.classList.toggle('soil-active', seg.altitude === 'SOIL'));
+    if (seg.dwell && seg.ring) {
+      orbitRingMarker.style.transform = 'translate3d(' + seg.from[0] + 'px,' + (-CANOPY_Y) + 'px,' + seg.from[1] + 'px)';
+      orbitRing.classList.toggle('alert', seg.result === 'diseased');
+      orbitRing.style.opacity = 1;
+    }
+  }
+  function exitSegment(seg) {
+    if (seg.marker) return;
+    if (seg.dwell) {
+      orbitRing.style.opacity = 0;
+      if (seg.result === 'diseased' && seg.treeId) {
+        document.getElementById(seg.treeId).querySelector('.tree').classList.add('diseased');
+        diseasedCount++;
+      } else if (seg.treeId) {
+        document.getElementById(seg.treeId).querySelector('.tree').classList.add('scanned');
+      }
+      treesScanned++; statTrees.textContent = treesScanned; statDisease.textContent = diseasedCount;
+    }
+    if (seg.log) addLog(seg.log);
+  }
+
+  function reset() {
+    idx = 0; segElapsed = 0; lastTs = null; treesScanned = 0; diseasedCount = 0;
+    statTrees.textContent = '0'; statDisease.textContent = '0'; logList.innerHTML = '';
+    orbitRing.style.opacity = 0;
+    ROWS.forEach(z => COLS.forEach(x => {
+      const t = document.getElementById('t-' + x + '-' + z).querySelector('.tree');
+      t.classList.remove('diseased', 'scanned');
+    }));
+    setChip(1);
+    document.querySelectorAll('.ground-tile').forEach(t => t.classList.remove('soil-active'));
+    let s = segments[0]; while (s && s.marker) { idx++; s = segments[idx]; }
+    enterSegment(segments[idx]);
+    addLog({ tag: 'mission', text: 'Departed base — mission started' });
+  }
+
+  function placeAt(x, z, height, headingDeg) {
+    const rot = headingDeg !== undefined ? ' rotateY(' + headingDeg + 'deg)' : '';
+    droneMarker.style.transform = 'translate3d(' + x + 'px,' + (-height) + 'px,' + z + 'px)' + rot;
+    shadowMarker.style.transform = 'translate3d(' + x + 'px,0,' + z + 'px)';
+    const shadowScale = height > 0 ? Math.max(0.35, 1 - height / 200) : 1;
+    droneShadowEl.style.width = (20 * shadowScale) + 'px';
+    droneShadowEl.style.height = (20 * shadowScale) + 'px';
+    droneShadowEl.style.marginLeft = (-10 * shadowScale) + 'px';
+    droneShadowEl.style.opacity = 0.05 + 0.15 * shadowScale;
+    poleMarker.style.transform = 'translate3d(' + x + 'px,' + (-height) + 'px,' + z + 'px)';
+    altPole.style.height = height + 'px';
+  }
+
+  function frame(ts) {
+    if (lastTs === null) lastTs = ts;
+    const dt = Math.min(ts - lastTs, 50); lastTs = ts;
+
+    if (playing && idx < segments.length) {
+      segElapsed += dt;
+      let seg = segments[idx];
+      while (idx < segments.length && (seg.marker || segElapsed >= (seg.duration || 0))) {
+        exitSegment(seg);
+        if (!seg.marker) segElapsed -= seg.duration;
+        idx++;
+        if (idx >= segments.length) break;
+        seg = segments[idx];
+        enterSegment(seg);
+      }
+    }
+
+    if (idx < segments.length) {
+      let seg = segments[idx];
+      while (seg && seg.marker) { idx++; seg = segments[idx]; }
+      if (seg) {
+        let x, z, height, heading;
+        if (seg.dwell && seg.ring) {
+          // orbit fully around the tree's canopy — this is the literal "360° covers the whole tree" proof
+          const angle = (segElapsed / seg.duration) * Math.PI * 2;
+          x = seg.from[0] + ORBIT_RADIUS * Math.cos(angle);
+          z = seg.from[1] + ORBIT_RADIUS * Math.sin(angle);
+          height = CANOPY_Y;
+          heading = (angle * 180 / Math.PI) + 90;
+        } else if (seg.dwell) {
+          x = seg.from[0]; z = seg.from[1]; height = ALT_PX[seg.altitude];
+        } else {
+          const t = Math.min(segElapsed / seg.duration, 1);
+          x = seg.from[0] + (seg.to[0] - seg.from[0]) * t;
+          z = seg.from[1] + (seg.to[1] - seg.from[1]) * t;
+          height = ALT_PX[seg.altitude];
+        }
+        placeAt(x, z, height, heading);
+        altTag.textContent = seg.dwell && seg.ring ? ALT_M.SCAN : ALT_M[seg.altitude];
+      }
+      const totalElapsed = segments.slice(0, idx).reduce((s, sg) => s + (sg.duration || 0), 0) + segElapsed;
+      progressFill.style.width = (Math.min(totalElapsed / totalDuration, 1) * 100) + '%';
+      elapsedLabel.textContent = fmt(Math.min(totalElapsed, totalDuration));
+    } else {
+      progressFill.style.width = '100%'; elapsedLabel.textContent = fmt(totalDuration);
+      setChip(4); playing = false; playBtn.textContent = 'Play';
+    }
+    requestAnimationFrame(frame);
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (idx >= segments.length) { reset(); playing = true; playBtn.textContent = 'Pause'; return; }
+    playing = !playing; playBtn.textContent = playing ? 'Pause' : 'Play';
+  });
+  restartBtn.addEventListener('click', () => { reset(); playing = true; playBtn.textContent = 'Pause'; });
+
+  // ---- drag to orbit ----
+  let rotX = 55, rotZ = -32, dragging = false, startPX = 0, startPY = 0, startRX = 0, startRZ = 0;
+  function applyRot() { scene.style.transform = 'rotateX(' + rotX + 'deg) rotateZ(' + rotZ + 'deg)'; }
+  applyRot();
+  stage.addEventListener('pointerdown', e => {
+    dragging = true; stage.classList.add('dragging'); stage.setPointerCapture(e.pointerId);
+    startPX = e.clientX; startPY = e.clientY; startRX = rotX; startRZ = rotZ;
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startPX, dy = e.clientY - startPY;
+    rotZ = startRZ + dx * 0.4;
+    rotX = Math.max(4, Math.min(89, startRX - dy * 0.4));
+    applyRot();
+  });
+  stage.addEventListener('pointerup', e => { dragging = false; stage.classList.remove('dragging'); });
+  stage.addEventListener('pointercancel', () => { dragging = false; stage.classList.remove('dragging'); });
+
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
