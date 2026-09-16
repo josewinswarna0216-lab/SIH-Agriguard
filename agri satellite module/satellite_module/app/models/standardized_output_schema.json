@@ -1,0 +1,531 @@
+{
+  "$defs": {
+    "AvailabilityInfo": {
+      "description": "Overall satellite data availability and quality flags.",
+      "properties": {
+        "sentinel_2_available": {
+          "description": "True if Sentinel-2 data is available",
+          "title": "Sentinel 2 Available",
+          "type": "boolean"
+        },
+        "sentinel_1_available": {
+          "description": "True if Sentinel-1 data is available",
+          "title": "Sentinel 1 Available",
+          "type": "boolean"
+        },
+        "cloud_free": {
+          "description": "True if Sentinel-2 observation is clear of excessive cloud cover",
+          "title": "Cloud Free",
+          "type": "boolean"
+        },
+        "quality": {
+          "description": "Overall observation quality: GOOD, MODERATE, POOR, INSUFFICIENT_DATA, UNAVAILABLE",
+          "title": "Quality",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sentinel_2_available",
+        "sentinel_1_available",
+        "cloud_free",
+        "quality"
+      ],
+      "title": "AvailabilityInfo",
+      "type": "object"
+    },
+    "GridInfo": {
+      "description": "Spatial grid parameters for the farm zone.",
+      "properties": {
+        "grid_id": {
+          "description": "Unique spatial grid bin identifier",
+          "examples": [
+            "GRID_03_12"
+          ],
+          "title": "Grid Id",
+          "type": "string"
+        },
+        "resolution_m": {
+          "default": 10,
+          "description": "Spatial resolution in meters",
+          "title": "Resolution M",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "grid_id"
+      ],
+      "title": "GridInfo",
+      "type": "object"
+    },
+    "IndexStats4": {
+      "description": "4-metric statistics for spectral vegetation indices (mean, min, max, std).",
+      "properties": {
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mean index value",
+          "title": "Mean"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum index value",
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum index value",
+          "title": "Max"
+        },
+        "std": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Standard deviation",
+          "title": "Std"
+        }
+      },
+      "title": "IndexStats4",
+      "type": "object"
+    },
+    "ObservationInfo": {
+      "description": "Primary satellite observation metadata.",
+      "properties": {
+        "timestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ISO 8601 acquisition timestamp",
+          "examples": [
+            "2026-09-15T05:32:18Z"
+          ],
+          "title": "Timestamp"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Acquisition date (YYYY-MM-DD)",
+          "examples": [
+            "2026-09-15"
+          ],
+          "title": "Date"
+        },
+        "satellite": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "Sentinel-2",
+          "description": "Satellite constellation name",
+          "title": "Satellite"
+        },
+        "platform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Satellite platform identifier",
+          "examples": [
+            "Sentinel-2A"
+          ],
+          "title": "Platform"
+        },
+        "tile_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Granule / Tile ID",
+          "examples": [
+            "T44PKR"
+          ],
+          "title": "Tile Id"
+        }
+      },
+      "title": "ObservationInfo",
+      "type": "object"
+    },
+    "ProcessingInfo": {
+      "description": "Data processing source and execution metadata.",
+      "properties": {
+        "source": {
+          "default": "Copernicus Data Space Ecosystem",
+          "description": "Satellite data provider source",
+          "title": "Source",
+          "type": "string"
+        },
+        "api": {
+          "default": "Sentinel Hub Process API",
+          "description": "Processing API endpoint",
+          "title": "Api",
+          "type": "string"
+        },
+        "processing_timestamp": {
+          "description": "ISO 8601 timestamp of data processing execution",
+          "title": "Processing Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processing_timestamp"
+      ],
+      "title": "ProcessingInfo",
+      "type": "object"
+    },
+    "RadarStats3": {
+      "description": "3-metric statistics for synthetic aperture radar backscatter (mean, min, max).",
+      "properties": {
+        "mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mean backscatter value in dB",
+          "title": "Mean"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum backscatter value in dB",
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum backscatter value in dB",
+          "title": "Max"
+        }
+      },
+      "title": "RadarStats3",
+      "type": "object"
+    },
+    "Sentinel1Data": {
+      "description": "Sentinel-1 Synthetic Aperture Radar (SAR) backscatter parameters.",
+      "properties": {
+        "available": {
+          "description": "Whether Sentinel-1 SAR data is available for this observation",
+          "title": "Available",
+          "type": "boolean"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ISO 8601 SAR acquisition timestamp",
+          "title": "Timestamp"
+        },
+        "orbit_direction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Orbit direction: ASCENDING, DESCENDING, or null",
+          "title": "Orbit Direction"
+        },
+        "polarization": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Radar polarization modes, e.g., ['VV', 'VH']",
+          "title": "Polarization"
+        },
+        "vv": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RadarStats3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "VV polarization backscatter statistics (dB)"
+        },
+        "vh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RadarStats3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "VH polarization backscatter statistics (dB)"
+        },
+        "data_quality": {
+          "default": "UNAVAILABLE",
+          "description": "Quality indicator: GOOD, MODERATE, POOR, INSUFFICIENT_DATA, UNAVAILABLE",
+          "title": "Data Quality",
+          "type": "string"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "title": "Sentinel1Data",
+      "type": "object"
+    },
+    "Sentinel2Data": {
+      "description": "Sentinel-2 optical multispectral observation parameters and vegetation indices.",
+      "properties": {
+        "available": {
+          "description": "Whether Sentinel-2 data is available for this observation",
+          "title": "Available",
+          "type": "boolean"
+        },
+        "cloud_coverage_percent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Scene cloud coverage percentage",
+          "title": "Cloud Coverage Percent"
+        },
+        "data_quality": {
+          "default": "UNAVAILABLE",
+          "description": "Quality indicator: GOOD, MODERATE, POOR, INSUFFICIENT_DATA, UNAVAILABLE",
+          "title": "Data Quality",
+          "type": "string"
+        },
+        "ndvi": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IndexStats4"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Normalized Difference Vegetation Index statistics"
+        },
+        "ndwi": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IndexStats4"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Normalized Difference Water Index statistics"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "title": "Sentinel2Data",
+      "type": "object"
+    },
+    "ZoneCoordinates": {
+      "description": "Geographic zone coordinates and bounding box in EPSG:4326.",
+      "properties": {
+        "type": {
+          "const": "Polygon",
+          "default": "Polygon",
+          "description": "GeoJSON geometry type",
+          "title": "Type",
+          "type": "string"
+        },
+        "coordinates": {
+          "description": "GeoJSON polygon coordinate rings",
+          "items": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "title": "Coordinates",
+          "type": "array"
+        },
+        "bbox": {
+          "description": "Bounding box [min_lon, min_lat, max_lon, max_lat]",
+          "items": {
+            "type": "number"
+          },
+          "title": "Bbox",
+          "type": "array"
+        },
+        "crs": {
+          "default": "EPSG:4326",
+          "description": "Coordinate Reference System",
+          "title": "Crs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "coordinates",
+        "bbox"
+      ],
+      "title": "ZoneCoordinates",
+      "type": "object"
+    },
+    "ZoneInfo": {
+      "description": "Farm zone identification and boundary geometry.",
+      "properties": {
+        "zone_id": {
+          "description": "Farm zone identifier",
+          "examples": [
+            "FARM01-ZONE03"
+          ],
+          "title": "Zone Id",
+          "type": "string"
+        },
+        "coordinates": {
+          "$ref": "#/$defs/ZoneCoordinates"
+        },
+        "grid": {
+          "$ref": "#/$defs/GridInfo"
+        }
+      },
+      "required": [
+        "zone_id",
+        "coordinates",
+        "grid"
+      ],
+      "title": "ZoneInfo",
+      "type": "object"
+    }
+  },
+  "description": "Root standardized machine-readable JSON model for agricultural satellite observations.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "description": "Schema version specification",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "zone": {
+      "$ref": "#/$defs/ZoneInfo"
+    },
+    "observation": {
+      "$ref": "#/$defs/ObservationInfo"
+    },
+    "sentinel_2": {
+      "$ref": "#/$defs/Sentinel2Data"
+    },
+    "sentinel_1": {
+      "$ref": "#/$defs/Sentinel1Data"
+    },
+    "availability": {
+      "$ref": "#/$defs/AvailabilityInfo"
+    },
+    "processing": {
+      "$ref": "#/$defs/ProcessingInfo"
+    }
+  },
+  "required": [
+    "zone",
+    "observation",
+    "sentinel_2",
+    "sentinel_1",
+    "availability",
+    "processing"
+  ],
+  "title": "StandardizedSatelliteOutput",
+  "type": "object"
+}

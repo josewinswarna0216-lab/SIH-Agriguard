@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "zone": {
+    "zone_id": "FARM01-ZONE03",
+    "coordinates": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            80.123,
+            13.012
+          ],
+          [
+            80.128,
+            13.012
+          ],
+          [
+            80.128,
+            13.018
+          ],
+          [
+            80.123,
+            13.018
+          ],
+          [
+            80.123,
+            13.012
+          ]
+        ]
+      ],
+      "bbox": [
+        80.123,
+        13.012,
+        80.128,
+        13.018
+      ],
+      "crs": "EPSG:4326"
+    },
+    "grid": {
+      "grid_id": "GRID_01_13",
+      "resolution_m": 10
+    }
+  },
+  "observation": {
+    "timestamp": "2026-09-15T05:32:18Z",
+    "date": "2026-09-15",
+    "satellite": "Sentinel-2",
+    "platform": "Sentinel-2A",
+    "tile_id": "T44PKR"
+  },
+  "sentinel_2": {
+    "available": true,
+    "cloud_coverage_percent": 4.8,
+    "data_quality": "GOOD",
+    "ndvi": {
+      "mean": 0.56,
+      "min": -0.17,
+      "max": 0.76,
+      "std": 0.19
+    },
+    "ndwi": {
+      "mean": 0.36,
+      "min": 0.08,
+      "max": 0.49,
+      "std": 0.06
+    }
+  },
+  "sentinel_1": {
+    "available": true,
+    "timestamp": "2026-09-15T00:00:00Z",
+    "orbit_direction": "DESCENDING",
+    "polarization": [
+      "VV",
+      "VH"
+    ],
+    "vv": {
+      "mean": -12.37,
+      "min": -19.22,
+      "max": -6.31
+    },
+    "vh": {
+      "mean": -18.68,
+      "min": -25.14,
+      "max": -11.36
+    },
+    "data_quality": "GOOD"
+  },
+  "availability": {
+    "sentinel_2_available": true,
+    "sentinel_1_available": true,
+    "cloud_free": true,
+    "quality": "GOOD"
+  },
+  "processing": {
+    "source": "Copernicus Data Space Ecosystem",
+    "api": "Sentinel Hub Process API",
+    "processing_timestamp": "2026-09-16T15:14:23Z"
+  }
+}
