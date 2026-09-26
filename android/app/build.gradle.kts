@@ -29,6 +29,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // The .tflite in assets/ is memory-mapped straight off the APK at runtime.
+    // If Gradle compresses it, that mapping fails and the model will not load.
+    androidResources {
+        noCompress += "tflite"
+    }
 }
 
 dependencies {
@@ -46,6 +52,12 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+
+    // On-device inference. Kept on the stock CPU interpreter so the APK runs on
+    // any phone; on a Snapdragon device the same model can be handed to the NPU
+    // through the LiteRT QNN accelerator without touching OnDeviceClassifier
+    // beyond the import.
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
 
     implementation("com.squareup.okhttp3:okhttp:5.5.0")
 

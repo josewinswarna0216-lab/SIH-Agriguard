@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
@@ -37,9 +38,13 @@ import com.agriguard.app.screens.HistoryScreen
 import com.agriguard.app.screens.IrrigationScreen
 import com.agriguard.app.screens.LiveScreen
 import com.agriguard.app.screens.MissionPlanScreen
+import com.agriguard.app.screens.ScanScreen
 import com.agriguard.app.ui.theme.AgriGuardTheme
 
 private enum class Tab(val route: String, val label: String) {
+    // Scan leads because it is the only tab that works with no network at all --
+    // it is the app a farmer standing in a field actually opens.
+    Scan("scan", "Scan"),
     Live("live", "Live"),
     Positions("positions", "Flight Plan"),
     History("history", "Results"),
@@ -109,9 +114,10 @@ fun AgriGuardApp() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Tab.Live.route,
+            startDestination = Tab.Scan.route,
             modifier = Modifier.padding(innerPadding),
         ) {
+            composable(Tab.Scan.route) { ScanScreen() }
             composable(Tab.Live.route) { LiveScreen() }
             composable(Tab.Positions.route) { MissionPlanScreen() }
             composable(Tab.History.route) { HistoryScreen() }
@@ -121,6 +127,7 @@ fun AgriGuardApp() {
 }
 
 private fun tabIcon(tab: Tab) = when (tab) {
+    Tab.Scan -> Icons.Filled.CameraAlt
     Tab.Live -> Icons.Filled.Videocam
     Tab.Positions -> Icons.Filled.Map
     Tab.History -> Icons.Filled.History
